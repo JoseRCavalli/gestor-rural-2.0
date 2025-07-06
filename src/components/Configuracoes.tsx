@@ -1,27 +1,61 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Clock, Bell, Smartphone, Save } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Configuracoes = () => {
-  const [userName, setUserName] = useState('João Silva');
+  const { profile, user } = useAuth();
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [propertyName, setPropertyName] = useState('');
   const [defaultTime, setDefaultTime] = useState('06:00');
   const [whatsappNotifications, setWhatsappNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [weatherAlerts, setWeatherAlerts] = useState(true);
   const [stockAlerts, setStockAlerts] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    // Simular salvamento
-    console.log('Configurações salvas:', {
-      userName,
-      defaultTime,
-      whatsappNotifications,
-      emailNotifications,
-      weatherAlerts,
-      stockAlerts
-    });
-    alert('Configurações salvas com sucesso!');
+  useEffect(() => {
+    if (profile) {
+      setUserName(profile.name || '');
+      setUserEmail(profile.email || '');
+      setUserPhone(profile.phone || '');
+      setPropertyName(profile.property_name || '');
+    }
+  }, [profile]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: userName,
+          email: userEmail,
+          phone: userPhone,
+          property_name: propertyName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast.error('Erro ao salvar configurações');
+      } else {
+        toast.success('Configurações salvas com sucesso!');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Erro ao salvar configurações');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,10 +64,11 @@ const Configuracoes = () => {
         <h2 className="text-2xl font-bold text-gray-800">⚙️ Configurações</h2>
         <button
           onClick={handleSave}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors"
+          disabled={loading}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          <span>Salvar Alterações</span>
+          <span>{loading ? 'Salvando...' : 'Salvar Alterações'}</span>
         </button>
       </div>
 
@@ -68,7 +103,8 @@ const Configuracoes = () => {
               </label>
               <input
                 type="email"
-                defaultValue="joao.silva@fazenda.com"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
@@ -79,7 +115,8 @@ const Configuracoes = () => {
               </label>
               <input
                 type="tel"
-                defaultValue="(11) 99999-9999"
+                value={userPhone}
+                onChange={(e) => setUserPhone(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
@@ -90,7 +127,8 @@ const Configuracoes = () => {
               </label>
               <input
                 type="text"
-                defaultValue="Fazenda Santa Maria"
+                value={propertyName}
+                onChange={(e) => setPropertyName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
@@ -286,7 +324,7 @@ const Configuracoes = () => {
         
         <div className="mt-4 pt-4 border-t border-green-500">
           <p className="text-sm text-green-100 mb-2">
-            <strong>Campo Visionário</strong> - Gestão Rural Inteligente
+            <strong>Granja Cavalli</strong> - Gestão Rural Inteligente
           </p>
           <p className="text-xs text-green-200">
             Otimize sua propriedade rural com tecnologia e dados em tempo real.

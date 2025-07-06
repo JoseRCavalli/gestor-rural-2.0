@@ -1,13 +1,19 @@
-
 import { motion } from 'framer-motion';
 import { Calendar, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Dashboard = () => {
+  const { profile } = useAuth();
+  
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bom dia';
     if (hour < 18) return 'Boa tarde';
     return 'Boa noite';
+  };
+
+  const getUserName = () => {
+    return profile?.name || 'Usuário';
   };
 
   const stockItems = [
@@ -63,7 +69,7 @@ const Dashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 text-white"
       >
-        <h2 className="text-2xl font-bold mb-2">{getGreeting()}, João!</h2>
+        <h2 className="text-2xl font-bold mb-2">{getGreeting()}, {getUserName()}!</h2>
         <p className="text-green-100">Bem-vindo ao seu painel de gestão rural</p>
         
         {/* Weather Info */}

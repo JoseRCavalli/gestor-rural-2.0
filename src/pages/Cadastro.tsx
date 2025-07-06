@@ -1,34 +1,52 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Cadastro = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    property: ''
-  });
-  const navigate = useNavigate();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [propertyName, setPropertyName] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Por enquanto, apenas redireciona para o dashboard
-    // Aqui seria integrado com sistema de autenticação
-    navigate('/dashboard');
+    setLoading(true);
+
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: name,
+            property: propertyName,
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Signup error:', error);
+        toast.error('Erro ao criar conta: ' + error.message);
+      } else {
+        toast.success('Conta criada com sucesso! Verifique seu email para confirmar.');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Erro ao criar conta');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,14 +61,14 @@ const Cadastro = () => {
           <Link to="/" className="inline-block">
             <h1 className="text-3xl font-bold text-green-800">🐄 Granja Cavalli</h1>
           </Link>
-          <p className="text-gray-600 mt-2">Crie sua conta gratuitamente</p>
+          <p className="text-gray-600 mt-2">Crie sua conta e comece a usar!</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Criar nova conta</CardTitle>
             <CardDescription>
-              Preencha os dados para começar a usar o sistema
+              Preencha os dados abaixo para se cadastrar
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -59,11 +77,10 @@ const Cadastro = () => {
                 <Label htmlFor="name">Nome completo</Label>
                 <Input
                   id="name"
-                  name="name"
                   type="text"
                   placeholder="Seu nome completo"
-                  value={formData.name}
-                  onChange={handleChange}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
@@ -72,24 +89,10 @@ const Cadastro = () => {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="property">Nome da propriedade</Label>
-                <Input
-                  id="property"
-                  name="property"
-                  type="text"
-                  placeholder="Ex: Fazenda São José"
-                  value={formData.property}
-                  onChange={handleChange}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -98,30 +101,28 @@ const Cadastro = () => {
                 <Label htmlFor="password">Senha</Label>
                 <Input
                   id="password"
-                  name="password"
                   type="password"
-                  placeholder="Sua senha"
-                  value={formData.password}
-                  onChange={handleChange}
+                  placeholder="Crie uma senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                <Label htmlFor="property">Nome da propriedade</Label>
                 <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirme sua senha"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
+                  id="property"
+                  type="text"
+                  placeholder="Nome da sua fazenda/propriedade"
+                  value={propertyName}
+                  onChange={(e) => setPropertyName(e.target.value)}
                   required
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Criar Conta
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Criando conta...' : 'Criar conta'}
               </Button>
             </form>
 
@@ -129,7 +130,7 @@ const Cadastro = () => {
               <p className="text-sm text-gray-600">
                 Já tem uma conta?{' '}
                 <Link to="/login" className="text-green-600 hover:underline">
-                  Entre aqui
+                  Faça login aqui
                 </Link>
               </p>
             </div>

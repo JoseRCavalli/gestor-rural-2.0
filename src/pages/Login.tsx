@@ -1,22 +1,41 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Por enquanto, apenas redireciona para o dashboard
-    // Aqui seria integrado com sistema de autenticação
-    navigate('/dashboard');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        toast.error('Erro ao fazer login: ' + error.message);
+      } else {
+        toast.success('Login realizado com sucesso!');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Erro ao fazer login');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,8 +86,8 @@ const Login = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Entrar
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
 

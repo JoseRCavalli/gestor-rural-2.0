@@ -1,6 +1,8 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 import Dashboard from '@/components/Dashboard';
 import Agenda from '@/components/Agenda';
 import Estoque from '@/components/Estoque';
@@ -10,6 +12,7 @@ import Configuracoes from '@/components/Configuracoes';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { signOut } = useAuth();
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
@@ -39,6 +42,10 @@ const Index = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
@@ -48,8 +55,19 @@ const Index = () => {
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-green-800">🐄 Granja Cavalli</h1>
             </div>
-            <div className="text-sm text-gray-600">
-              Gestão Rural Inteligente
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Gestão Rural Inteligente
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair</span>
+              </Button>
             </div>
           </div>
         </div>
