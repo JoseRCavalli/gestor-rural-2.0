@@ -11,11 +11,11 @@ export interface WeatherData {
 
 export const getWeatherData = async (): Promise<WeatherData> => {
   try {
-    // Coordenadas fixas de Vera Cruz do Oeste - Paraná
-    const lat = -24.987;
-    const lon = -54.246;
+    // Coordenadas fixas de Toledo - Paraná
+    const lat = -24.713;
+    const lon = -53.743;
 
-    console.log(`Fetching weather for Vera Cruz do Oeste - Paraná: ${lat}, ${lon}`);
+    console.log(`Fetching weather for Toledo - Paraná: ${lat}, ${lon}`);
 
     const { data, error } = await supabase.functions.invoke('get-weather', {
       body: { lat, lon }
