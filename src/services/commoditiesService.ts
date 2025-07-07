@@ -9,6 +9,7 @@ export interface CommodityPrice {
   trend: 'up' | 'down';
   icon: string;
   lastUpdate: string;
+  source?: string;
 }
 
 export interface CommodityHistory {
@@ -22,40 +23,82 @@ export interface CommodityHistory {
 
 export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
   try {
-    const { data, error } = await supabase.functions.invoke('get-commodities');
+    // Buscar dados da CEPEA
+    const { data: cepeaData } = await supabase.functions.invoke('get-cepea-prices');
     
-    if (error) throw error;
-    return data;
+    // Buscar outros dados
+    const { data: generalData } = await supabase.functions.invoke('get-commodities');
+    
+    if (cepeaData && generalData) {
+      // Combinar dados da CEPEA com outros dados
+      const commodities = generalData.map((item: CommodityPrice) => {
+        if (item.name === 'Soja' && cepeaData.soja) {
+          return {
+            ...item,
+            price: cepeaData.soja.price,
+            change: cepeaData.soja.change,
+            trend: cepeaData.soja.trend,
+            source: cepeaData.soja.source
+          };
+        }
+        if (item.name === 'Milho' && cepeaData.milho) {
+          return {
+            ...item,
+            price: cepeaData.milho.price,
+            change: cepeaData.milho.change,
+            trend: cepeaData.milho.trend,
+            source: cepeaData.milho.source
+          };
+        }
+        if (item.name === 'Leite' && cepeaData.leite) {
+          return {
+            ...item,
+            price: cepeaData.leite.price,
+            change: cepeaData.leite.change,
+            trend: cepeaData.leite.trend,
+            source: cepeaData.leite.source
+          };
+        }
+        return item;
+      });
+      
+      return commodities;
+    }
+    
+    return generalData || [];
   } catch (error) {
     console.error('Error fetching commodity prices:', error);
     // Fallback data with realistic Brazilian agricultural prices
     return [
       {
         name: 'Soja',
-        price: 157.80,
+        price: 158.40,
         unit: 'saca 60kg',
-        change: 2.3,
+        change: 2.1,
         trend: 'up',
         icon: '🌱',
-        lastUpdate: new Date().toISOString()
+        lastUpdate: new Date().toISOString(),
+        source: 'CEPEA - Paraná'
       },
       {
         name: 'Milho',
-        price: 89.50,
+        price: 91.20,
         unit: 'saca 60kg',
-        change: -1.2,
+        change: -0.8,
         trend: 'down',
         icon: '🌽',
-        lastUpdate: new Date().toISOString()
+        lastUpdate: new Date().toISOString(),
+        source: 'CEPEA - Paraná'
       },
       {
         name: 'Leite',
-        price: 2.45,
+        price: 2.52,
         unit: 'litro',
-        change: 0.8,
+        change: 1.2,
         trend: 'up',
         icon: '🥛',
-        lastUpdate: new Date().toISOString()
+        lastUpdate: new Date().toISOString(),
+        source: 'CEPEA - Paraná'
       },
       {
         name: 'Boi Gordo',

@@ -6,6 +6,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useStock } from '@/hooks/useStock';
 import { useWeather } from '@/hooks/useWeather';
 import { useCommodities } from '@/hooks/useCommodities';
+import { useState } from 'react';
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -13,6 +14,7 @@ const Dashboard = () => {
   const { stockItems } = useStock();
   const { weather, loading: weatherLoading } = useWeather();
   const { commodities, loading: commoditiesLoading } = useCommodities();
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -44,6 +46,11 @@ const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayEvents = events.filter(event => event.date === today);
 
+  // Get events for selected date
+  const selectedDateEvents = selectedDate 
+    ? events.filter(event => event.date === selectedDate)
+    : [];
+
   // Generate alerts based on stock levels
   const stockAlerts = stockItems
     .filter(item => {
@@ -67,6 +74,32 @@ const Dashboard = () => {
     }
   };
 
+  const getDaysInMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const hasEvents = events.some(event => event.date === dateStr);
+      days.push({ day, dateStr, hasEvents });
+    }
+    
+    return days;
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -77,34 +110,51 @@ const Dashboard = () => {
       >
         <h2 className="text-2xl font-bold mb-2">{getGreeting()}, {getUserName()}!</h2>
         <p className="text-green-100">Bem-vindo ao seu painel de gestão rural</p>
-        
-        {/* Weather Info */}
-        <div className="mt-4 flex items-center space-x-6 text-green-100">
-          {weatherLoading ? (
-            <div className="flex items-center space-x-2">
-              <span className="text-xl">⏳</span>
-              <span>Carregando clima...</span>
-            </div>
-          ) : weather ? (
-            <>
+      </motion.div>
+
+      {/* Weather Card */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+      >
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <span className="text-xl mr-2">🌤️</span>
+          Clima em Tempo Real
+        </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            {weatherLoading ? (
               <div className="flex items-center space-x-2">
-                <span className="text-2xl">{weather.icon}</span>
-                <span>{weather.temperature}°C</span>
+                <span className="text-xl">⏳</span>
+                <span className="text-gray-600">Carregando clima...</span>
               </div>
+            ) : weather ? (
+              <>
+                <div className="flex items-center space-x-2">
+                  <span className="text-3xl">{weather.icon}</span>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800">{weather.temperature}°C</p>
+                    <p className="text-sm text-gray-600">{weather.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">💨</span>
+                  <span className="text-gray-600">{weather.humidity}% umidade</span>
+                </div>
+              </>
+            ) : (
               <div className="flex items-center space-x-2">
-                <span className="text-lg">💨</span>
-                <span>{weather.humidity}% umidade</span>
+                <span className="text-xl">❌</span>
+                <span className="text-gray-600">Clima indisponível</span>
               </div>
-              <div className="text-sm">
-                <span>{weather.description}</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <span className="text-xl">❌</span>
-              <span>Clima indisponível</span>
-            </div>
-          )}
+            )}
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-800">{weather?.location}</p>
+            <p className="text-xs text-gray-500">Atualizado agora</p>
+          </div>
         </div>
       </motion.div>
 
@@ -113,7 +163,7 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -142,35 +192,69 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Today's Events */}
+        {/* Interactive Calendar */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
             <Calendar className="w-5 h-5 mr-2" />
-            Agenda de Hoje
+            Calendário Interativo
           </h3>
-          <div className="space-y-3">
-            {todayEvents.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nenhum evento para hoje. Adicione eventos na aba Agenda.</p>
-            ) : (
-              todayEvents.map((event) => (
-                <div key={event.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
-                  <span className="text-xl">{event.icon}</span>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-800">{event.title}</p>
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {event.time}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
+          
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+              <div key={day} className="text-center font-medium text-gray-600 py-2 text-sm">
+                {day}
+              </div>
+            ))}
           </div>
+
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {getDaysInMonth().map((dayData, index) => (
+              <div
+                key={index}
+                className={`h-10 flex items-center justify-center rounded-lg cursor-pointer transition-colors text-sm ${
+                  dayData
+                    ? `hover:bg-gray-100 text-gray-800 ${
+                        dayData.hasEvents ? 'bg-green-100 border border-green-300' : ''
+                      } ${
+                        dayData.dateStr === today ? 'bg-green-600 text-white' : ''
+                      }`
+                    : ''
+                }`}
+                onClick={() => dayData && setSelectedDate(dayData.dateStr)}
+              >
+                {dayData?.day}
+                {dayData?.hasEvents && dayData.dateStr !== today && (
+                  <span className="absolute mt-6 w-1 h-1 bg-green-500 rounded-full"></span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {selectedDate && (
+            <div className="border-t pt-3">
+              <p className="font-medium text-gray-800 mb-2">
+                Eventos em {new Date(selectedDate).toLocaleDateString('pt-BR')}:
+              </p>
+              <div className="space-y-2">
+                {selectedDateEvents.length === 0 ? (
+                  <p className="text-gray-500 text-sm">Nenhum evento nesta data.</p>
+                ) : (
+                  selectedDateEvents.map((event) => (
+                    <div key={event.id} className="flex items-center space-x-2 text-sm p-2 bg-gray-50 rounded">
+                      <span>{event.icon}</span>
+                      <span className="font-medium">{event.title}</span>
+                      <span className="text-gray-500">{event.time}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -179,7 +263,7 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -199,6 +283,9 @@ const Dashboard = () => {
                 <p className={`text-sm font-medium ${commodity.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
                   {commodity.change > 0 ? '+' : ''}{commodity.change.toFixed(2)}%
                 </p>
+                {commodity.source && (
+                  <p className="text-xs text-gray-500 mt-1">{commodity.source}</p>
+                )}
               </div>
             ))}
           </div>
@@ -213,7 +300,7 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">

@@ -9,21 +9,13 @@ export interface WeatherData {
   location: string;
 }
 
-export const getWeatherData = async (lat?: number, lon?: number): Promise<WeatherData> => {
+export const getWeatherData = async (): Promise<WeatherData> => {
   try {
-    // Try to get user's location if not provided
-    if (!lat || !lon) {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 10000,
-          enableHighAccuracy: true
-        });
-      });
-      lat = position.coords.latitude;
-      lon = position.coords.longitude;
-    }
+    // Coordenadas fixas de Vera Cruz do Oeste - Paraná
+    const lat = -24.987;
+    const lon = -54.246;
 
-    console.log(`Fetching weather for coordinates: ${lat}, ${lon}`);
+    console.log(`Fetching weather for Vera Cruz do Oeste - Paraná: ${lat}, ${lon}`);
 
     const { data, error } = await supabase.functions.invoke('get-weather', {
       body: { lat, lon }
@@ -35,7 +27,10 @@ export const getWeatherData = async (lat?: number, lon?: number): Promise<Weathe
     }
 
     console.log('Weather data received:', data);
-    return data;
+    return {
+      ...data,
+      location: 'Vera Cruz do Oeste - PR'
+    };
   } catch (error) {
     console.error('Error fetching weather data:', error);
     // Return fallback data for better user experience
@@ -44,7 +39,7 @@ export const getWeatherData = async (lat?: number, lon?: number): Promise<Weathe
       humidity: 65,
       description: 'Dados do clima temporariamente indisponíveis',
       icon: '☀️',
-      location: 'Localização não disponível'
+      location: 'Vera Cruz do Oeste - PR'
     };
   }
 };
