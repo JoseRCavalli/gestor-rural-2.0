@@ -4,11 +4,15 @@ import { Calendar, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useStock } from '@/hooks/useStock';
+import { useWeather } from '@/hooks/useWeather';
+import { useCommodities } from '@/hooks/useCommodities';
 
 const Dashboard = () => {
   const { profile } = useAuth();
   const { events } = useEvents();
   const { stockItems } = useStock();
+  const { weather, loading: weatherLoading } = useWeather();
+  const { commodities, loading: commoditiesLoading } = useCommodities();
   
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -40,18 +44,6 @@ const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayEvents = events.filter(event => event.date === today);
 
-  // Get upcoming events (next 4)
-  const upcomingEvents = events
-    .filter(event => new Date(event.date) >= new Date())
-    .slice(0, 4);
-
-  const commodityPrices = [
-    { name: 'Soja', price: 'R$ 157,80', unit: 'saca 60kg', change: '+2.3%', trend: 'up' },
-    { name: 'Milho', price: 'R$ 89,50', unit: 'saca 60kg', change: '-1.2%', trend: 'down' },
-    { name: 'Leite', price: 'R$ 2,45', unit: 'litro', change: '+0.8%', trend: 'up' },
-    { name: 'Boi Gordo', price: 'R$ 312,00', unit: '@', change: '+1.5%', trend: 'up' }
-  ];
-
   // Generate alerts based on stock levels
   const stockAlerts = stockItems
     .filter(item => {
@@ -64,8 +56,7 @@ const Dashboard = () => {
       icon: getStockStatus(item.quantity, item.min_stock) === 'Crítico' ? '🚨' : '⚠️'
     }));
 
-  const weatherAlert = { message: 'Chuva prevista para amanhã', type: 'info', icon: '🌧️' };
-  const alerts = [...stockAlerts, weatherAlert];
+  const alerts = [...stockAlerts];
 
   const getAlertColor = (type: string) => {
     switch (type) {
@@ -89,14 +80,31 @@ const Dashboard = () => {
         
         {/* Weather Info */}
         <div className="mt-4 flex items-center space-x-6 text-green-100">
-          <div className="flex items-center space-x-2">
-            <span className="text-2xl">☀️</span>
-            <span>28°C</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-lg">💨</span>
-            <span>65% umidade</span>
-          </div>
+          {weatherLoading ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-xl">⏳</span>
+              <span>Carregando clima...</span>
+            </div>
+          ) : weather ? (
+            <>
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">{weather.icon}</span>
+                <span>{weather.temperature}°C</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">💨</span>
+                <span>{weather.humidity}% umidade</span>
+              </div>
+              <div className="text-sm">
+                <span>{weather.description}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="text-xl">❌</span>
+              <span>Clima indisponível</span>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -177,19 +185,28 @@ const Dashboard = () => {
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
             <TrendingUp className="w-5 h-5 mr-2" />
             Preços de Commodities
+            {commoditiesLoading && <span className="text-xs text-gray-500 ml-2">(Atualizando...)</span>}
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            {commodityPrices.map((commodity, index) => (
+            {commodities.slice(0, 4).map((commodity, index) => (
               <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                <p className="font-medium text-gray-800">{commodity.name}</p>
-                <p className="text-lg font-bold text-green-600">{commodity.price}</p>
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="text-lg">{commodity.icon}</span>
+                  <p className="font-medium text-gray-800">{commodity.name}</p>
+                </div>
+                <p className="text-lg font-bold text-green-600">R$ {commodity.price.toFixed(2)}</p>
                 <p className="text-xs text-gray-600">{commodity.unit}</p>
                 <p className={`text-sm font-medium ${commodity.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                  {commodity.change}
+                  {commodity.change > 0 ? '+' : ''}{commodity.change.toFixed(2)}%
                 </p>
               </div>
             ))}
           </div>
+          {commodities.length > 0 && (
+            <p className="text-xs text-gray-500 mt-2">
+              Última atualização: {new Date().toLocaleTimeString('pt-BR')}
+            </p>
+          )}
         </motion.div>
 
         {/* Alerts */}
