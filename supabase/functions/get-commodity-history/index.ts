@@ -15,29 +15,50 @@ serve(async (req) => {
   try {
     const { days = 7 } = await req.json();
     
-    console.log(`Generating commodity history for ${days} days`);
+    console.log(`Generating realistic commodity history for ${days} days`);
+
+    // Base prices for historical data
+    const basePrices = {
+      soja: 157.80,
+      milho: 89.50,
+      leite: 2.45,
+      boiGordo: 312.00,
+      dolar: 5.23
+    };
 
     const history = [];
     const baseDate = new Date();
+    
+    // Generate realistic historical trend
+    let trend = Math.random() > 0.5 ? 1 : -1; // Start with upward or downward trend
     
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(baseDate);
       date.setDate(date.getDate() - i);
       
-      // Generate realistic historical data with trends
-      const dayVariation = () => (Math.random() - 0.5) * 2;
+      // Create realistic market movements with some trend persistence
+      const getTrendedVariation = (base: number) => {
+        const randomFactor = (Math.random() - 0.5) * 0.02; // ±1% random
+        const trendFactor = trend * 0.005; // ±0.5% trend
+        return Math.max(base * 0.8, base * (1 + randomFactor + trendFactor));
+      };
+
+      // Occasionally reverse trend (20% chance each day)
+      if (Math.random() < 0.2) {
+        trend *= -1;
+      }
       
       history.push({
         date: date.toISOString().split('T')[0],
-        soja: Math.max(150, 155 + dayVariation() * 5),
-        milho: Math.max(85, 89 + dayVariation() * 3),
-        leite: Math.max(2.3, 2.45 + dayVariation() * 0.05),
-        boiGordo: Math.max(300, 310 + dayVariation() * 8),
-        dolar: Math.max(5.0, 5.20 + dayVariation() * 0.1)
+        soja: parseFloat(getTrendedVariation(basePrices.soja).toFixed(2)),
+        milho: parseFloat(getTrendedVariation(basePrices.milho).toFixed(2)),
+        leite: parseFloat(getTrendedVariation(basePrices.leite).toFixed(2)),
+        boiGordo: parseFloat(getTrendedVariation(basePrices.boiGordo).toFixed(2)),
+        dolar: parseFloat(getTrendedVariation(basePrices.dolar).toFixed(2))
       });
     }
 
-    console.log('Commodity history generated successfully');
+    console.log('Realistic commodity history generated successfully');
 
     return new Response(
       JSON.stringify(history),

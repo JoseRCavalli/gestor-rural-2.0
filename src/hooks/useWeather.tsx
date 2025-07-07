@@ -11,11 +11,23 @@ export const useWeather = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching weather data...');
       const data = await getWeatherData();
+      console.log('Weather data fetched:', data);
       setWeather(data);
     } catch (err) {
-      setError('Erro ao buscar dados do clima');
+      const errorMessage = 'Erro ao buscar dados do clima';
+      setError(errorMessage);
       console.error('Weather fetch error:', err);
+      
+      // Set fallback weather data even on error
+      setWeather({
+        temperature: 25,
+        humidity: 65,
+        description: 'Clima indisponível',
+        icon: '☀️',
+        location: 'Localização não disponível'
+      });
     } finally {
       setLoading(false);
     }
