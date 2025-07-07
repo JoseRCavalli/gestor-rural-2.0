@@ -1,19 +1,67 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Minus, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Minus, AlertTriangle, Trash2 } from 'lucide-react';
+import { useStock } from '@/hooks/useStock';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const Estoque = () => {
-  const [stockItems, setStockItems] = useState([
-    { id: 1, name: 'Fertilizante NPK 20-05-20', quantity: 450, unit: 'kg', minStock: 200, lastUpdate: '2024-01-10', category: 'Fertilizantes' },
-    { id: 2, name: 'Sementes de Soja Transgênica', quantity: 25, unit: 'kg', minStock: 50, lastUpdate: '2024-01-12', category: 'Sementes' },
-    { id: 3, name: 'Defensivo Glifosato', quantity: 5, unit: 'L', minStock: 15, lastUpdate: '2024-01-14', category: 'Defensivos' },
-    { id: 4, name: 'Ração Bovina Premium', quantity: 800, unit: 'kg', minStock: 300, lastUpdate: '2024-01-11', category: 'Ração' },
-    { id: 5, name: 'Adubo Orgânico', quantity: 150, unit: 'kg', minStock: 100, lastUpdate: '2024-01-13', category: 'Fertilizantes' },
-    { id: 6, name: 'Vacina Antiaftosa', quantity: 8, unit: 'doses', minStock: 20, lastUpdate: '2024-01-09', category: 'Veterinário' }
-  ]);
-
+  const { stockItems, createStockItem, updateStockItem, deleteStockItem } = useStock();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    quantity: 0,
+    unit: 'kg',
+    min_stock: 0,
+    category: 'Fertilizantes'
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name) return;
+
+    if (editingItem) {
+      await updateStockItem(editingItem, formData);
+      setEditingItem(null);
+    } else {
+      await createStockItem(formData);
+    }
+
+    setFormData({
+      name: '',
+      quantity: 0,
+      unit: 'kg',
+      min_stock: 0,
+      category: 'Fertilizantes'
+    });
+    setShowAddForm(false);
+  };
+
+  const handleEdit = (item: any) => {
+    setFormData({
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      min_stock: item.min_stock,
+      category: item.category
+    });
+    setEditingItem(item.id);
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja deletar este item?')) {
+      await deleteStockItem(id);
+    }
+  };
+
+  const handleQuantityChange = async (id: string, newQuantity: number) => {
+    if (newQuantity < 0) return;
+    await updateStockItem(id, { quantity: newQuantity });
+  };
 
   const getStockStatus = (quantity: number, minStock: number) => {
     if (quantity <= minStock * 0.5) return 'Crítico';
@@ -50,20 +98,32 @@ const Estoque = () => {
     }
   };
 
-  const criticalItems = stockItems.filter(item => getStockStatus(item.quantity, item.minStock) === 'Crítico');
-  const lowItems = stockItems.filter(item => getStockStatus(item.quantity, item.minStock) === 'Baixo');
+  const criticalItems = stockItems.filter(item => getStockStatus(item.quantity, item.min_stock) === 'Crítico');
+  const lowItems = stockItems.filter(item => getStockStatus(item.quantity, item.min_stock) === 'Baixo');
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      quantity: 0,
+      unit: 'kg',
+      min_stock: 0,
+      category: 'Fertilizantes'
+    });
+    setEditingItem(null);
+    setShowAddForm(false);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">📦 Controle de Estoque</h2>
-        <button
+        <Button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors"
+          className="bg-green-600 text-white hover:bg-green-700"
         >
-          <Plus className="w-4 h-4" />
-          <span>Novo Item</span>
-        </button>
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Item
+        </Button>
       </div>
 
       {/* Alert Cards */}
@@ -116,66 +176,82 @@ const Estoque = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Adicionar Novo Item</h3>
-          <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            {editingItem ? 'Editar Item' : 'Adicionar Novo Item'}
+          </h3>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Item</label>
-              <input
+              <Input
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="Ex: Fertilizante NPK"
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Quantidade</label>
-              <input
+              <Input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                value={formData.quantity}
+                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
                 placeholder="0"
+                min="0"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Unidade</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option>kg</option>
-                <option>L</option>
-                <option>unidades</option>
-                <option>doses</option>
-                <option>sacas</option>
+              <select 
+                value={formData.unit}
+                onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="kg">kg</option>
+                <option value="L">L</option>
+                <option value="unidades">unidades</option>
+                <option value="doses">doses</option>
+                <option value="sacas">sacas</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Estoque Mínimo</label>
-              <input
+              <Input
                 type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                value={formData.min_stock}
+                onChange={(e) => setFormData({...formData, min_stock: parseInt(e.target.value) || 0})}
                 placeholder="0"
+                min="0"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option>Fertilizantes</option>
-                <option>Sementes</option>
-                <option>Defensivos</option>
-                <option>Ração</option>
-                <option>Veterinário</option>
+              <select 
+                value={formData.category}
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="Fertilizantes">Fertilizantes</option>
+                <option value="Sementes">Sementes</option>
+                <option value="Defensivos">Defensivos</option>
+                <option value="Ração">Ração</option>
+                <option value="Veterinário">Veterinário</option>
               </select>
             </div>
             <div className="flex items-end space-x-2">
-              <button
+              <Button
                 type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-green-600 hover:bg-green-700"
               >
-                Salvar
-              </button>
-              <button
+                {editingItem ? 'Atualizar' : 'Salvar'}
+              </Button>
+              <Button
                 type="button"
-                onClick={() => setShowAddForm(false)}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                variant="outline"
+                onClick={resetForm}
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
           </form>
         </motion.div>
@@ -200,51 +276,76 @@ const Estoque = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {stockItems.map((item) => {
-                const status = getStockStatus(item.quantity, item.minStock);
-                return (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{item.name}</div>
-                      <div className="text-sm text-gray-500">Min: {item.minStock} {item.unit}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(item.category)}`}>
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {item.quantity} {item.unit}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">{getStatusIcon(status)}</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
-                          {status}
+              {stockItems.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    Nenhum item no estoque. Clique em "Novo Item" para começar.
+                  </td>
+                </tr>
+              ) : (
+                stockItems.map((item) => {
+                  const status = getStockStatus(item.quantity, item.min_stock);
+                  return (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-500">Min: {item.min_stock} {item.unit}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(item.category)}`}>
+                          {item.category}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(item.lastUpdate).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="text-green-600 hover:text-green-900">
-                          <Plus className="w-4 h-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          <Minus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                            className="p-1 text-red-600 hover:bg-red-100 rounded"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="text-sm font-medium text-gray-900 min-w-[60px] text-center">
+                            {item.quantity} {item.unit}
+                          </span>
+                          <button
+                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg">{getStatusIcon(status)}</span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
+                            {status}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(item.updated_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button 
+                            onClick={() => handleEdit(item)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(item.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

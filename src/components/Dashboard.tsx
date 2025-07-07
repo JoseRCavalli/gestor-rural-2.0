@@ -1,9 +1,14 @@
+
 import { motion } from 'framer-motion';
 import { Calendar, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useEvents } from '@/hooks/useEvents';
+import { useStock } from '@/hooks/useStock';
 
 const Dashboard = () => {
   const { profile } = useAuth();
+  const { events } = useEvents();
+  const { stockItems } = useStock();
   
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -16,32 +21,11 @@ const Dashboard = () => {
     return profile?.name || 'Usuário';
   };
 
-  const stockItems = [
-    { name: 'Fertilizante NPK', quantity: 450, unit: 'kg', status: 'OK' },
-    { name: 'Sementes de Soja', quantity: 25, unit: 'kg', status: 'Baixo' },
-    { name: 'Defensivo Agrícola', quantity: 5, unit: 'L', status: 'Crítico' },
-    { name: 'Ração Bovina', quantity: 800, unit: 'kg', status: 'OK' }
-  ];
-
-  const todayTasks = [
-    { task: 'Irrigação Setor A', time: '06:00', icon: '💧', done: true },
-    { task: 'Aplicação de Defensivo', time: '14:30', icon: '🚿', done: false },
-    { task: 'Coleta de Amostras', time: '16:00', icon: '🧪', done: false },
-    { task: 'Alimentação do Gado', time: '18:00', icon: '🐄', done: false }
-  ];
-
-  const commodityPrices = [
-    { name: 'Soja', price: 'R$ 157,80', unit: 'saca 60kg', change: '+2.3%', trend: 'up' },
-    { name: 'Milho', price: 'R$ 89,50', unit: 'saca 60kg', change: '-1.2%', trend: 'down' },
-    { name: 'Leite', price: 'R$ 2,45', unit: 'litro', change: '+0.8%', trend: 'up' },
-    { name: 'Boi Gordo', price: 'R$ 312,00', unit: '@', change: '+1.5%', trend: 'up' }
-  ];
-
-  const alerts = [
-    { message: 'Sementes de Soja em baixo estoque', type: 'warning', icon: '⚠️' },
-    { message: 'Chuva prevista para amanhã', type: 'info', icon: '🌧️' },
-    { message: 'Defensivo crítico - reabastecer', type: 'danger', icon: '🚨' }
-  ];
+  const getStockStatus = (quantity: number, minStock: number) => {
+    if (quantity <= minStock * 0.5) return 'Crítico';
+    if (quantity <= minStock) return 'Baixo';
+    return 'OK';
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -51,6 +35,37 @@ const Dashboard = () => {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  // Get today's events
+  const today = new Date().toISOString().split('T')[0];
+  const todayEvents = events.filter(event => event.date === today);
+
+  // Get upcoming events (next 4)
+  const upcomingEvents = events
+    .filter(event => new Date(event.date) >= new Date())
+    .slice(0, 4);
+
+  const commodityPrices = [
+    { name: 'Soja', price: 'R$ 157,80', unit: 'saca 60kg', change: '+2.3%', trend: 'up' },
+    { name: 'Milho', price: 'R$ 89,50', unit: 'saca 60kg', change: '-1.2%', trend: 'down' },
+    { name: 'Leite', price: 'R$ 2,45', unit: 'litro', change: '+0.8%', trend: 'up' },
+    { name: 'Boi Gordo', price: 'R$ 312,00', unit: '@', change: '+1.5%', trend: 'up' }
+  ];
+
+  // Generate alerts based on stock levels
+  const stockAlerts = stockItems
+    .filter(item => {
+      const status = getStockStatus(item.quantity, item.min_stock);
+      return status === 'Crítico' || status === 'Baixo';
+    })
+    .map(item => ({
+      message: `${item.name} em ${getStockStatus(item.quantity, item.min_stock).toLowerCase()} estoque`,
+      type: getStockStatus(item.quantity, item.min_stock) === 'Crítico' ? 'danger' : 'warning',
+      icon: getStockStatus(item.quantity, item.min_stock) === 'Crítico' ? '🚨' : '⚠️'
+    }));
+
+  const weatherAlert = { message: 'Chuva prevista para amanhã', type: 'info', icon: '🌧️' };
+  const alerts = [...stockAlerts, weatherAlert];
 
   const getAlertColor = (type: string) => {
     switch (type) {
@@ -98,21 +113,28 @@ const Dashboard = () => {
             Resumo do Estoque
           </h3>
           <div className="space-y-3">
-            {stockItems.map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{item.name}</p>
-                  <p className="text-sm text-gray-600">{item.quantity} {item.unit}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                  {item.status}
-                </span>
-              </div>
-            ))}
+            {stockItems.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhum item no estoque. Adicione itens na aba Estoque.</p>
+            ) : (
+              stockItems.slice(0, 4).map((item) => {
+                const status = getStockStatus(item.quantity, item.min_stock);
+                return (
+                  <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-800">{item.name}</p>
+                      <p className="text-sm text-gray-600">{item.quantity} {item.unit}</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                      {status}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </motion.div>
 
-        {/* Today's Tasks */}
+        {/* Today's Events */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -124,21 +146,22 @@ const Dashboard = () => {
             Agenda de Hoje
           </h3>
           <div className="space-y-3">
-            {todayTasks.map((task, index) => (
-              <div key={index} className={`flex items-center space-x-3 p-3 rounded-lg ${task.done ? 'bg-green-50' : 'bg-gray-50'}`}>
-                <span className="text-xl">{task.icon}</span>
-                <div className="flex-1">
-                  <p className={`font-medium ${task.done ? 'text-green-700 line-through' : 'text-gray-800'}`}>
-                    {task.task}
-                  </p>
-                  <p className="text-sm text-gray-600 flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {task.time}
-                  </p>
+            {todayEvents.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhum evento para hoje. Adicione eventos na aba Agenda.</p>
+            ) : (
+              todayEvents.map((event) => (
+                <div key={event.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                  <span className="text-xl">{event.icon}</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{event.title}</p>
+                    <p className="text-sm text-gray-600 flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {event.time}
+                    </p>
+                  </div>
                 </div>
-                {task.done && <span className="text-green-600">✓</span>}
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
       </div>
@@ -181,14 +204,18 @@ const Dashboard = () => {
             Alertas
           </h3>
           <div className="space-y-3">
-            {alerts.map((alert, index) => (
-              <div key={index} className={`p-4 rounded-lg border-l-4 ${getAlertColor(alert.type)}`}>
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">{alert.icon}</span>
-                  <p className="text-sm font-medium text-gray-800">{alert.message}</p>
+            {alerts.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhum alerta no momento.</p>
+            ) : (
+              alerts.map((alert, index) => (
+                <div key={index} className={`p-4 rounded-lg border-l-4 ${getAlertColor(alert.type)}`}>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{alert.icon}</span>
+                    <p className="text-sm font-medium text-gray-800">{alert.message}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
       </div>

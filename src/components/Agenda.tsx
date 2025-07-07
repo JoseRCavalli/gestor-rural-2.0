@@ -1,19 +1,69 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Clock, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Clock, Calendar as CalendarIcon, Edit, Trash2 } from 'lucide-react';
+import { useEvents } from '@/hooks/useEvents';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const Agenda = () => {
+  const { events, createEvent, updateEvent, deleteEvent } = useEvents();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    type: 'task',
+    icon: '📅'
+  });
 
-  const events = [
-    { id: 1, title: 'Irrigação Setor A', date: '2024-01-15', time: '06:00', icon: '💧', type: 'task' },
-    { id: 2, title: 'Reunião com Veterinário', date: '2024-01-16', time: '14:00', icon: '👨‍⚕️', type: 'meeting' },
-    { id: 3, title: 'Aplicação de Fertilizante', date: '2024-01-17', time: '08:30', icon: '🌱', type: 'task' },
-    { id: 4, title: 'Colheita Setor B', date: '2024-01-18', time: '05:30', icon: '🚜', type: 'harvest' },
-    { id: 5, title: 'Manutenção Equipamentos', date: '2024-01-19', time: '13:00', icon: '🔧', type: 'maintenance' }
-  ];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.date || !formData.time) {
+      return;
+    }
+
+    if (editingEvent) {
+      await updateEvent(editingEvent, formData);
+      setEditingEvent(null);
+    } else {
+      await createEvent(formData);
+    }
+
+    setFormData({
+      title: '',
+      description: '',
+      date: '',
+      time: '',
+      type: 'task',
+      icon: '📅'
+    });
+    setShowAddForm(false);
+  };
+
+  const handleEdit = (event: any) => {
+    setFormData({
+      title: event.title,
+      description: event.description || '',
+      date: event.date,
+      time: event.time,
+      type: event.type,
+      icon: event.icon
+    });
+    setEditingEvent(event.id);
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja deletar este evento?')) {
+      await deleteEvent(id);
+    }
+  };
 
   const getCurrentMonth = () => {
     const month = selectedDate.toLocaleString('pt-BR', { month: 'long' });
@@ -57,17 +107,30 @@ const Agenda = () => {
   const upcomingEvents = events.filter(event => new Date(event.date) >= new Date());
   const pastEvents = events.filter(event => new Date(event.date) < new Date());
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      date: '',
+      time: '',
+      type: 'task',
+      icon: '📅'
+    });
+    setEditingEvent(null);
+    setShowAddForm(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">📅 Agenda Rural</h2>
-        <button
+        <Button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors"
+          className="bg-green-600 text-white hover:bg-green-700"
         >
-          <Plus className="w-4 h-4" />
-          <span>Novo Evento</span>
-        </button>
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Evento
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -125,7 +188,7 @@ const Agenda = () => {
           </div>
         </motion.div>
 
-        {/* Add Event Form */}
+        {/* Add/Edit Event Form */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -133,44 +196,72 @@ const Agenda = () => {
         >
           {showAddForm ? (
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Novo Evento</h3>
-              <form className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {editingEvent ? 'Editar Evento' : 'Novo Evento'}
+              </h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
-                  <input
+                  <Input
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
                     placeholder="Nome do evento"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Descrição do evento"
+                    rows={3}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
-                  <input
+                  <Input
                     type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Horário</label>
-                  <input
+                  <Input
                     type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    value={formData.time}
+                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                    required
                   />
                 </div>
-                <div className="flex space-x-2">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                  <select 
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
-                    Salvar
-                  </button>
-                  <button
+                    <option value="task">Tarefa</option>
+                    <option value="meeting">Reunião</option>
+                    <option value="harvest">Colheita</option>
+                    <option value="maintenance">Manutenção</option>
+                  </select>
+                </div>
+                <div className="flex space-x-2">
+                  <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
+                    {editingEvent ? 'Atualizar' : 'Salvar'}
+                  </Button>
+                  <Button
                     type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                    variant="outline"
+                    onClick={resetForm}
+                    className="flex-1"
                   >
                     Cancelar
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -192,6 +283,9 @@ const Agenda = () => {
                     </div>
                   </div>
                 ))}
+                {upcomingEvents.length === 0 && (
+                  <p className="text-gray-500 text-sm">Nenhum evento próximo.</p>
+                )}
               </div>
             </div>
           )}
@@ -221,11 +315,28 @@ const Agenda = () => {
                     </div>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEventTypeColor(event.type)}`}>
-                  {event.type}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEventTypeColor(event.type)}`}>
+                    {event.type}
+                  </span>
+                  <button
+                    onClick={() => handleEdit(event)}
+                    className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(event.id)}
+                    className="p-1 text-red-600 hover:bg-red-100 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
+            {upcomingEvents.length === 0 && (
+              <p className="text-gray-500 text-sm">Nenhum evento futuro.</p>
+            )}
           </div>
         </motion.div>
 
@@ -253,6 +364,9 @@ const Agenda = () => {
                 <span className="text-green-600">✓</span>
               </div>
             ))}
+            {pastEvents.length === 0 && (
+              <p className="text-gray-500 text-sm">Nenhum evento passado.</p>
+            )}
           </div>
         </motion.div>
       </div>
