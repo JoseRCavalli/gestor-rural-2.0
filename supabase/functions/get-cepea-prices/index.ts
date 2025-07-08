@@ -37,7 +37,7 @@ serve(async (req) => {
         unit: 'litro',
         change: -1.12, // Editar manualmente
         trend: -1.12 >= 0 ? 'up' : 'down', // Automatically calculated based on change
-        source: 'Conseleite - Paraná', // Fonte alterada conforme solicitado
+        source: 'Conseleite - Paraná (Junho)', // Fonte alterada conforme solicitado
         lastUpdate: new Date().toISOString()
       }
     };
