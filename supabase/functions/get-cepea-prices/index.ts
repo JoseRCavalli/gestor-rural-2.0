@@ -17,17 +17,17 @@ serve(async (req) => {
     // Valores médios fixos - EDITÁVEIS MANUALMENTE A CADA MÊS
     const cepeaPrices = {
       soja: {
-        price: 158.50, // Editar manualmente
+        price: 129.04, // Editar manualmente
         unit: 'saca 60kg',
-        change: 1.2, // Editar manualmente
+        change: 0.47, // Editar manualmente
         trend: 1.2 >= 0 ? 'up' : 'down', // Automatically calculated based on change
-        source: 'CEPEA - Paraná',
+        source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       },
       milho: {
-        price: 90.00, // Editar manualmente
+        price: 63.44, // Editar manualmente
         unit: 'saca 60kg',
-        change: -0.5, // Editar manualmente
+        change: -5.34, // Editar manualmente
         trend: -0.5 >= 0 ? 'up' : 'down', // Automatically calculated based on change
         source: 'CEPEA - Paraná',
         lastUpdate: new Date().toISOString()
