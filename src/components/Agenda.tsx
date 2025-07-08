@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 const Agenda = () => {
   const { events, createEvent, updateEvent, deleteEvent } = useEvents();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDateString, setSelectedDateString] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -86,9 +87,11 @@ const Agenda = () => {
       days.push(null);
     }
     
-    // Add days of the month
+    // Add days of the month - CORRIGIDO para evitar problemas de timezone
     for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const hasEvents = events.some(event => event.date === dateStr);
+      days.push({ day, dateStr, hasEvents });
     }
     
     return days;
@@ -120,6 +123,13 @@ const Agenda = () => {
     setShowAddForm(false);
   };
 
+  // Get events for selected date
+  const selectedDateEvents = selectedDateString 
+    ? events.filter(event => event.date === selectedDateString)
+    : [];
+
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -134,7 +144,7 @@ const Agenda = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
+        {/* Calendar - CORRIGIDO E TORNADO INTERATIVO */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -166,26 +176,70 @@ const Agenda = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {getDaysInMonth().map((day, index) => (
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {getDaysInMonth().map((dayData, index) => (
               <div
                 key={index}
-                className={`h-12 flex items-center justify-center rounded-lg cursor-pointer transition-colors ${
-                  day
-                    ? 'hover:bg-gray-100 text-gray-800'
-                    : ''
-                } ${
-                  day === new Date().getDate() && 
-                  selectedDate.getMonth() === new Date().getMonth() &&
-                  selectedDate.getFullYear() === new Date().getFullYear()
-                    ? 'bg-green-600 text-white'
+                className={`h-12 flex items-center justify-center rounded-lg cursor-pointer transition-colors relative ${
+                  dayData
+                    ? `hover:bg-gray-100 text-gray-800 ${
+                        dayData.hasEvents ? 'bg-green-100 border border-green-300' : ''
+                      } ${
+                        dayData.dateStr === today ? 'bg-green-600 text-white' : ''
+                      } ${
+                        dayData.dateStr === selectedDateString ? 'ring-2 ring-blue-500' : ''
+                      }`
                     : ''
                 }`}
+                onClick={() => dayData && setSelectedDateString(dayData.dateStr)}
               >
-                {day}
+                {dayData?.day}
+                {dayData?.hasEvents && dayData.dateStr !== today && (
+                  <span className="absolute bottom-1 w-1 h-1 bg-green-500 rounded-full"></span>
+                )}
               </div>
             ))}
           </div>
+
+          {/* Eventos do dia selecionado */}
+          {selectedDateString && (
+            <div className="border-t pt-4">
+              <p className="font-medium text-gray-800 mb-3">
+                Eventos em {new Date(selectedDateString + 'T00:00:00').toLocaleDateString('pt-BR')}:
+              </p>
+              <div className="space-y-2">
+                {selectedDateEvents.length === 0 ? (
+                  <p className="text-gray-500 text-sm">Nenhum evento nesta data.</p>
+                ) : (
+                  selectedDateEvents.map((event) => (
+                    <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{event.icon}</span>
+                        <div>
+                          <span className="font-medium text-gray-800">{event.title}</span>
+                          <div className="text-sm text-gray-600">{event.time}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleEdit(event)}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(event.id)}
+                          className="p-1 text-red-600 hover:bg-red-100 rounded"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* Add/Edit Event Form */}
@@ -277,7 +331,7 @@ const Agenda = () => {
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <CalendarIcon className="w-3 h-3" />
-                      <span>{new Date(event.date).toLocaleDateString('pt-BR')}</span>
+                      <span>{new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                       <Clock className="w-3 h-3 ml-2" />
                       <span>{event.time}</span>
                     </div>
@@ -310,7 +364,7 @@ const Agenda = () => {
                   <div>
                     <p className="font-medium text-gray-800">{event.title}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span>{new Date(event.date).toLocaleDateString('pt-BR')}</span>
+                      <span>{new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                       <span>{event.time}</span>
                     </div>
                   </div>
@@ -356,7 +410,7 @@ const Agenda = () => {
                   <div>
                     <p className="font-medium text-gray-800 line-through">{event.title}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span>{new Date(event.date).toLocaleDateString('pt-BR')}</span>
+                      <span>{new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                       <span>{event.time}</span>
                     </div>
                   </div>

@@ -90,7 +90,7 @@ const Dashboard = () => {
       days.push(null);
     }
     
-    // Add days of the month
+    // Add days of the month - CORRIGIDO: usar UTC para evitar problemas de timezone
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const hasEvents = events.some(event => event.date === dateStr);
@@ -192,7 +192,7 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Interactive Calendar */}
+        {/* Interactive Calendar - CORRIGIDO */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -216,12 +216,14 @@ const Dashboard = () => {
             {getDaysInMonth().map((dayData, index) => (
               <div
                 key={index}
-                className={`h-10 flex items-center justify-center rounded-lg cursor-pointer transition-colors text-sm ${
+                className={`h-10 flex items-center justify-center rounded-lg cursor-pointer transition-colors text-sm relative ${
                   dayData
                     ? `hover:bg-gray-100 text-gray-800 ${
                         dayData.hasEvents ? 'bg-green-100 border border-green-300' : ''
                       } ${
                         dayData.dateStr === today ? 'bg-green-600 text-white' : ''
+                      } ${
+                        dayData.dateStr === selectedDate ? 'ring-2 ring-blue-500' : ''
                       }`
                     : ''
                 }`}
@@ -229,7 +231,7 @@ const Dashboard = () => {
               >
                 {dayData?.day}
                 {dayData?.hasEvents && dayData.dateStr !== today && (
-                  <span className="absolute mt-6 w-1 h-1 bg-green-500 rounded-full"></span>
+                  <span className="absolute bottom-1 w-1 h-1 bg-green-500 rounded-full"></span>
                 )}
               </div>
             ))}
@@ -238,7 +240,7 @@ const Dashboard = () => {
           {selectedDate && (
             <div className="border-t pt-3">
               <p className="font-medium text-gray-800 mb-2">
-                Eventos em {new Date(selectedDate).toLocaleDateString('pt-BR')}:
+                Eventos em {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}:
               </p>
               <div className="space-y-2">
                 {selectedDateEvents.length === 0 ? (

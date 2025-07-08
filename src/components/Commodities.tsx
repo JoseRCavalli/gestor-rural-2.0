@@ -85,28 +85,31 @@ const Commodities = () => {
 
               <div className="text-sm text-gray-500">
                 <p>Última atualização: {new Date(commodity.lastUpdate).toLocaleString('pt-BR')}</p>
+                {commodity.source && (
+                  <p className="text-xs mt-1">{commodity.source}</p>
+                )}
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Price History Chart */}
+      {/* Price History Chart - ALTERADO PARA MENSAL */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
         className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
       >
-        <h3 className="text-lg font-semibold text-gray-800 mb-6">Evolução dos Preços (Últimos 7 dias)</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-6">Evolução dos Preços (Últimos 30 dias)</h3>
         
         <div className="space-y-4">
-          {/* Simple Chart Visualization */}
-          <div className="grid grid-cols-7 gap-4">
-            {history.map((day, index) => (
+          {/* Simple Chart Visualization - Mensal */}
+          <div className="grid grid-cols-10 gap-2">
+            {history.slice(-10).map((day, index) => (
               <div key={day.date} className="text-center">
-                <p className="text-sm font-medium text-gray-600 mb-2">
-                  {new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'short' })}
+                <p className="text-xs font-medium text-gray-600 mb-2">
+                  {new Date(day.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                 </p>
                 
                 {/* Chart bars */}
@@ -116,7 +119,7 @@ const Commodities = () => {
                       className="bg-green-500 rounded-sm mx-auto"
                       style={{ 
                         height: `${Math.max(20, (day.soja / 160) * 60)}px`,
-                        width: '8px'
+                        width: '6px'
                       }}
                     ></div>
                     <p className="text-xs text-green-700 mt-1">{day.soja.toFixed(0)}</p>
@@ -127,7 +130,7 @@ const Commodities = () => {
                       className="bg-yellow-500 rounded-sm mx-auto"
                       style={{ 
                         height: `${Math.max(20, (day.milho / 95) * 60)}px`,
-                        width: '8px'
+                        width: '6px'
                       }}
                     ></div>
                     <p className="text-xs text-yellow-700 mt-1">{day.milho.toFixed(0)}</p>
@@ -137,11 +140,22 @@ const Commodities = () => {
                     <div 
                       className="bg-blue-500 rounded-sm mx-auto"
                       style={{ 
-                        height: `${Math.max(20, (day.leite / 2.5) * 60)}px`,
-                        width: '8px'
+                        height: `${Math.max(20, (day.leite / 2.8) * 60)}px`,
+                        width: '6px'
                       }}
                     ></div>
                     <p className="text-xs text-blue-700 mt-1">{day.leite.toFixed(2)}</p>
+                  </div>
+
+                  <div className="bg-purple-100 rounded-lg p-2">
+                    <div 
+                      className="bg-purple-500 rounded-sm mx-auto"
+                      style={{ 
+                        height: `${Math.max(20, (day.dolar / 6) * 60)}px`,
+                        width: '6px'
+                      }}
+                    ></div>
+                    <p className="text-xs text-purple-700 mt-1">{day.dolar.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -161,6 +175,10 @@ const Commodities = () => {
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
               <span className="text-sm text-gray-600">Leite</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-purple-500 rounded-sm"></div>
+              <span className="text-sm text-gray-600">Dólar</span>
             </div>
           </div>
         </div>

@@ -23,15 +23,20 @@ export interface CommodityHistory {
 
 export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
   try {
-    // Buscar dados da CEPEA
-    const { data: cepeaData } = await supabase.functions.invoke('get-cepea-prices');
+    // Buscar dados da CEPEA e do dólar em paralelo
+    const [cepeaResponse, dollarResponse, generalResponse] = await Promise.all([
+      supabase.functions.invoke('get-cepea-prices'),
+      supabase.functions.invoke('get-dollar-price'),
+      supabase.functions.invoke('get-commodities')
+    ]);
     
-    // Buscar outros dados
-    const { data: generalData } = await supabase.functions.invoke('get-commodities');
+    const cepeaData = cepeaResponse.data;
+    const dollarData = dollarResponse.data;
+    const generalData = generalResponse.data;
     
     if (cepeaData && generalData) {
       // Combinar dados da CEPEA com outros dados
-      const commodities = generalData.map((item: CommodityPrice) => {
+      let commodities = generalData.map((item: CommodityPrice) => {
         if (item.name === 'Soja' && cepeaData.soja) {
           return {
             ...item,
@@ -59,6 +64,15 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
             source: cepeaData.leite.source
           };
         }
+        if (item.name === 'Dólar' && dollarData) {
+          return {
+            ...item,
+            price: dollarData.price,
+            change: dollarData.change,
+            trend: dollarData.trend,
+            source: dollarData.source
+          };
+        }
         return item;
       });
       
@@ -72,9 +86,9 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
     return [
       {
         name: 'Soja',
-        price: 158.40,
+        price: 158.50,
         unit: 'saca 60kg',
-        change: 2.1,
+        change: 1.2,
         trend: 'up',
         icon: '🌱',
         lastUpdate: new Date().toISOString(),
@@ -82,9 +96,9 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
       },
       {
         name: 'Milho',
-        price: 91.20,
+        price: 90.00,
         unit: 'saca 60kg',
-        change: -0.8,
+        change: -0.5,
         trend: 'down',
         icon: '🌽',
         lastUpdate: new Date().toISOString(),
@@ -92,13 +106,13 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
       },
       {
         name: 'Leite',
-        price: 2.52,
+        price: 2.73,
         unit: 'litro',
-        change: 1.2,
+        change: 0.8,
         trend: 'up',
         icon: '🥛',
         lastUpdate: new Date().toISOString(),
-        source: 'CEPEA - Paraná'
+        source: 'Conseleite - Paraná'
       },
       {
         name: 'Boi Gordo',
@@ -122,7 +136,7 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
   }
 };
 
-export const getCommodityHistory = async (days: number = 7): Promise<CommodityHistory[]> => {
+export const getCommodityHistory = async (days: number = 30): Promise<CommodityHistory[]> => {
   try {
     const { data, error } = await supabase.functions.invoke('get-commodity-history', {
       body: { days }
@@ -132,7 +146,7 @@ export const getCommodityHistory = async (days: number = 7): Promise<CommodityHi
     return data;
   } catch (error) {
     console.error('Error fetching commodity history:', error);
-    // Fallback historical data
+    // Fallback historical data for 30 days (monthly)
     const history: CommodityHistory[] = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
@@ -141,9 +155,9 @@ export const getCommodityHistory = async (days: number = 7): Promise<CommodityHi
         date: date.toISOString().split('T')[0],
         soja: 155 + Math.random() * 10,
         milho: 87 + Math.random() * 5,
-        leite: 2.40 + Math.random() * 0.1,
+        leite: 2.40 + Math.random() * 0.3,
         boiGordo: 305 + Math.random() * 15,
-        dolar: 5.15 + Math.random() * 0.2
+        dolar: 5.15 + Math.random() * 0.4
       });
     }
     return history;

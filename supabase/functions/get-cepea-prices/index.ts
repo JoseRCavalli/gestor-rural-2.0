@@ -13,38 +13,37 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Fetching CEPEA prices with updated data...');
+    console.log('Fetching CEPEA prices with manual values...');
 
-    // Dados atualizados da CEPEA para Paraná - baseados em cotações reais
-    // Preço do leite corrigido para R$ 2,73 conforme solicitado
+    // Valores médios fixos - EDITÁVEIS MANUALMENTE A CADA MÊS
     const cepeaPrices = {
       soja: {
-        price: 160.25,
+        price: 158.50, // Editar manualmente
         unit: 'saca 60kg',
-        change: 1.8,
+        change: 1.2, // Editar manualmente
         trend: 'up',
         source: 'CEPEA - Paraná',
         lastUpdate: new Date().toISOString()
       },
       milho: {
-        price: 89.80,
+        price: 90.00, // Editar manualmente
         unit: 'saca 60kg',
-        change: -1.2,
+        change: -0.5, // Editar manualmente
         trend: 'down',
         source: 'CEPEA - Paraná',
         lastUpdate: new Date().toISOString()
       },
       leite: {
-        price: 2.73,
+        price: 2.73, // Editar manualmente
         unit: 'litro',
-        change: 0.8,
+        change: 0.8, // Editar manualmente
         trend: 'up',
-        source: 'CEPEA - Paraná',
+        source: 'Conseleite - Paraná', // Fonte alterada conforme solicitado
         lastUpdate: new Date().toISOString()
       }
     };
 
-    console.log('CEPEA prices updated with correct values:', cepeaPrices);
+    console.log('CEPEA prices with manual values:', cepeaPrices);
 
     return new Response(
       JSON.stringify(cepeaPrices),

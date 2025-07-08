@@ -14,7 +14,7 @@ export const useCommodities = () => {
       setError(null);
       const [pricesData, historyData] = await Promise.all([
         getCommodityPrices(),
-        getCommodityHistory(7)
+        getCommodityHistory(30) // Alterado para 30 dias (mensal)
       ]);
       setCommodities(pricesData);
       setHistory(historyData);
