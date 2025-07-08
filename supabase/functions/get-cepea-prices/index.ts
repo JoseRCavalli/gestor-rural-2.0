@@ -29,7 +29,7 @@ serve(async (req) => {
         unit: 'saca 60kg',
         change: -5.34, // Editar manualmente
         trend: -0.5 >= 0 ? 'up' : 'down', // Automatically calculated based on change
-        source: 'CEPEA - Paraná',
+        source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       },
       leite: {
