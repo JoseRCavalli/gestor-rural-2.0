@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Plus, Edit2, Trash2, AlertTriangle, Search } from 'lucide-react';
@@ -10,7 +11,7 @@ import { useStock } from '@/hooks/useStock';
 import StockImporter from '@/components/StockImporter';
 
 const Estoque = () => {
-  const { stockItems, addStockItem, updateStockItem, deleteStockItem, loading } = useStock();
+  const { stockItems, createStockItem, updateStockItem, deleteStockItem, loading } = useStock();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todas');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -69,9 +70,9 @@ const Estoque = () => {
 
   const handleSubmit = async () => {
     if (editingItem) {
-      await updateStockItem({ ...editingItem, ...formData });
+      await updateStockItem(editingItem.id, formData);
     } else {
-      await addStockItem(formData);
+      await createStockItem(formData);
     }
     handleCloseDialog();
   };
