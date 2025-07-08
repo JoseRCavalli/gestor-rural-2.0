@@ -53,6 +53,84 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          alert_advance_minutes: number | null
+          created_at: string
+          default_reminder_time: string | null
+          email_notifications: boolean | null
+          id: string
+          stock_alerts: boolean | null
+          updated_at: string
+          user_id: string
+          weather_alerts: boolean | null
+          whatsapp_notifications: boolean | null
+        }
+        Insert: {
+          alert_advance_minutes?: number | null
+          created_at?: string
+          default_reminder_time?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          stock_alerts?: boolean | null
+          updated_at?: string
+          user_id: string
+          weather_alerts?: boolean | null
+          whatsapp_notifications?: boolean | null
+        }
+        Update: {
+          alert_advance_minutes?: number | null
+          created_at?: string
+          default_reminder_time?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          stock_alerts?: boolean | null
+          updated_at?: string
+          user_id?: string
+          weather_alerts?: boolean | null
+          whatsapp_notifications?: boolean | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          message: string
+          read: boolean | null
+          sent_at: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean | null
+          sent_at?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean | null
+          sent_at?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -80,6 +158,36 @@ export type Database = {
           phone?: string | null
           property_name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string
+          data: Json
+          generated_at: string
+          id: string
+          report_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          generated_at?: string
+          id?: string
+          report_type: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          generated_at?: string
+          id?: string
+          report_type?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }

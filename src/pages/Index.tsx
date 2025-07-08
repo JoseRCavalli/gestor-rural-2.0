@@ -1,111 +1,120 @@
+
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { LogOut } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Home, 
+  Calendar, 
+  Package, 
+  TrendingUp, 
+  BarChart3, 
+  Settings,
+  Bell,
+  FileText
+} from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import Agenda from '@/components/Agenda';
 import Estoque from '@/components/Estoque';
 import Commodities from '@/components/Commodities';
 import Relatorios from '@/components/Relatorios';
 import Configuracoes from '@/components/Configuracoes';
+import NotificationCenter from '@/components/NotificationCenter';
+import ReportsManager from '@/components/ReportsManager';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { signOut } = useAuth();
-
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-    { id: 'agenda', label: 'Agenda', icon: '📅' },
-    { id: 'estoque', label: 'Estoque', icon: '📦' },
-    { id: 'commodities', label: 'Commodities', icon: '📈' },
-    { id: 'relatorios', label: 'Relatórios', icon: '📊' },
-    { id: 'configuracoes', label: 'Configurações', icon: '⚙️' }
-  ];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'agenda':
-        return <Agenda />;
-      case 'estoque':
-        return <Estoque />;
-      case 'commodities':
-        return <Commodities />;
-      case 'relatorios':
-        return <Relatorios />;
-      case 'configuracoes':
-        return <Configuracoes />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-  };
+  const { unreadCount } = useNotifications();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-green-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-green-800">🐄 Granja Cavalli</h1>
+      <div className="container mx-auto p-6">
+        <header className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">🚜 Granja Cavalli</h1>
+              <p className="text-gray-600 mt-2">Sistema de Gestão Rural Inteligente</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Gestão Rural Inteligente
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sair</span>
-              </Button>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Dados protegidos por usuário</p>
+              <p className="text-xs text-gray-500">Privacidade garantida</p>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <span className="text-lg">{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-8 w-full mb-8 bg-white/80 backdrop-blur-sm">
+            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+              <Home className="w-4 h-4" />
+              <span className="hidden md:inline">Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden md:inline">Agenda</span>
+            </TabsTrigger>
+            <TabsTrigger value="estoque" className="flex items-center space-x-2">
+              <Package className="w-4 h-4" />
+              <span className="hidden md:inline">Estoque</span>
+            </TabsTrigger>
+            <TabsTrigger value="commodities" className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden md:inline">Commodities</span>
+            </TabsTrigger>
+            <TabsTrigger value="relatorios" className="flex items-center space-x-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden md:inline">Relatórios</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center space-x-2 relative">
+              <Bell className="w-4 h-4" />
+              <span className="hidden md:inline">Notificações</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="reportmanager" className="flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden md:inline">Relatórios+</span>
+            </TabsTrigger>
+            <TabsTrigger value="configuracoes" className="flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden md:inline">Config</span>
+            </TabsTrigger>
+          </TabsList>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderContent()}
-        </motion.div>
-      </main>
+          <TabsContent value="dashboard">
+            <Dashboard />
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            <Agenda />
+          </TabsContent>
+
+          <TabsContent value="estoque">
+            <Estoque />
+          </TabsContent>
+
+          <TabsContent value="commodities">
+            <Commodities />
+          </TabsContent>
+
+          <TabsContent value="relatorios">
+            <Relatorios />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <NotificationCenter />
+          </TabsContent>
+
+          <TabsContent value="reportmanager">
+            <ReportsManager />
+          </TabsContent>
+
+          <TabsContent value="configuracoes">
+            <Configuracoes />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

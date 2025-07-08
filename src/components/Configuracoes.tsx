@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Clock, Bell, Smartphone, Save } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Configuracoes = () => {
   const { profile, user } = useAuth();
+  const { settings, updateSettings } = useNotifications();
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
@@ -17,6 +19,7 @@ const Configuracoes = () => {
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [weatherAlerts, setWeatherAlerts] = useState(true);
   const [stockAlerts, setStockAlerts] = useState(true);
+  const [alertAdvanceMinutes, setAlertAdvanceMinutes] = useState(30);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,7 +31,18 @@ const Configuracoes = () => {
     }
   }, [profile]);
 
-  const handleSave = async () => {
+  useEffect(() => {
+    if (settings) {
+      setDefaultTime(settings.default_reminder_time);
+      setWhatsappNotifications(settings.whatsapp_notifications);
+      setEmailNotifications(settings.email_notifications);
+      setWeatherAlerts(settings.weather_alerts);
+      setStockAlerts(settings.stock_alerts);
+      setAlertAdvanceMinutes(settings.alert_advance_minutes);
+    }
+  }, [settings]);
+
+  const handleSaveProfile = async () => {
     if (!user) return;
     
     setLoading(true);
@@ -46,30 +60,52 @@ const Configuracoes = () => {
 
       if (error) {
         console.error('Error updating profile:', error);
-        toast.error('Erro ao salvar configurações');
+        toast.error('Erro ao salvar perfil');
       } else {
-        toast.success('Configurações salvas com sucesso!');
+        toast.success('Perfil salvo com sucesso!');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Erro ao salvar configurações');
+      toast.error('Erro ao salvar perfil');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveNotificationSettings = async () => {
+    if (!settings) return;
+
+    await updateSettings({
+      default_reminder_time: defaultTime,
+      whatsapp_notifications: whatsappNotifications,
+      email_notifications: emailNotifications,
+      weather_alerts: weatherAlerts,
+      stock_alerts: stockAlerts,
+      alert_advance_minutes: alertAdvanceMinutes
+    });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">⚙️ Configurações</h2>
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          <span>{loading ? 'Salvando...' : 'Salvar Alterações'}</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSaveProfile}
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            <span>{loading ? 'Salvando...' : 'Salvar Perfil'}</span>
+          </button>
+          <button
+            onClick={handleSaveNotificationSettings}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 transition-colors"
+          >
+            <Bell className="w-4 h-4" />
+            <span>Salvar Notificações</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -157,11 +193,25 @@ const Configuracoes = () => {
                 onChange={(e) => setDefaultTime(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
-              <p className="text-sm text-gray-600 mt-1">
-                Horário padrão para novos lembretes e tarefas
-              </p>
             </div>
             
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Antecedência dos Alertas (minutos)
+              </label>
+              <select 
+                value={alertAdvanceMinutes}
+                onChange={(e) => setAlertAdvanceMinutes(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value={15}>15 minutos</option>
+                <option value={30}>30 minutos</option>
+                <option value={60}>1 hora</option>
+                <option value={120}>2 horas</option>
+                <option value={1440}>1 dia</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Fuso Horário
@@ -181,19 +231,6 @@ const Configuracoes = () => {
                 <option>DD/MM/AAAA</option>
                 <option>MM/DD/AAAA</option>
                 <option>AAAA-MM-DD</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Antecedência dos Alertas
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option>15 minutos</option>
-                <option>30 minutos</option>
-                <option>1 hora</option>
-                <option>2 horas</option>
-                <option>1 dia</option>
               </select>
             </div>
           </div>
@@ -324,10 +361,10 @@ const Configuracoes = () => {
         
         <div className="mt-4 pt-4 border-t border-green-500">
           <p className="text-sm text-green-100 mb-2">
-            <strong>Granja Cavalli</strong> - Gestão Rural Inteligente
+            <strong>Granja Cavalli</strong> - Data privada por usuário
           </p>
           <p className="text-xs text-green-200">
-            Otimize sua propriedade rural com tecnologia e dados em tempo real.
+            Todos os seus dados são protegidos e privados. Apenas você tem acesso às suas informações.
           </p>
         </div>
       </motion.div>
