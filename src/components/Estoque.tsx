@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Plus, Edit2, Trash2, AlertTriangle, Search } from 'lucide-react';
@@ -9,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useStock } from '@/hooks/useStock';
 import StockImporter from '@/components/StockImporter';
+import StockAlerts from '@/components/StockAlerts';
 
 const Estoque = () => {
   const { stockItems, createStockItem, updateStockItem, deleteStockItem, loading } = useStock();
@@ -180,7 +180,16 @@ const Estoque = () => {
         </div>
       </div>
 
-      {/* Add Stock Importer */}
+      {/* Stock Alerts */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <StockAlerts />
+      </motion.div>
+
+      {/* Stock Importer */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
