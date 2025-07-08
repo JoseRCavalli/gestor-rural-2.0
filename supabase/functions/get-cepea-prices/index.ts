@@ -7,7 +7,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,7 +20,7 @@ serve(async (req) => {
         price: 158.50, // Editar manualmente
         unit: 'saca 60kg',
         change: 1.2, // Editar manualmente
-        trend: 'up',
+        trend: 1.2 >= 0 ? 'up' : 'down', // Automatically calculated based on change
         source: 'CEPEA - Paraná',
         lastUpdate: new Date().toISOString()
       },
@@ -29,7 +28,7 @@ serve(async (req) => {
         price: 90.00, // Editar manualmente
         unit: 'saca 60kg',
         change: -0.5, // Editar manualmente
-        trend: 'down',
+        trend: -0.5 >= 0 ? 'up' : 'down', // Automatically calculated based on change
         source: 'CEPEA - Paraná',
         lastUpdate: new Date().toISOString()
       },
@@ -37,8 +36,8 @@ serve(async (req) => {
         price: 2.4099, // Editar manualmente
         unit: 'litro',
         change: -1.12, // Editar manualmente
-        trend: 'up',
-        source: 'Conseleite - Paraná (Junho)', // Fonte alterada conforme solicitado
+        trend: -1.12 >= 0 ? 'up' : 'down', // Automatically calculated based on change
+        source: 'Conseleite - Paraná', // Fonte alterada conforme solicitado
         lastUpdate: new Date().toISOString()
       }
     };

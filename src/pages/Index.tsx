@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { 
   Home, 
   Calendar, 
@@ -9,7 +10,8 @@ import {
   BarChart3, 
   Settings,
   Bell,
-  FileText
+  FileText,
+  LogOut
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import Agenda from '@/components/Agenda';
@@ -20,10 +22,29 @@ import Configuracoes from '@/components/Configuracoes';
 import NotificationCenter from '@/components/NotificationCenter';
 import ReportsManager from '@/components/ReportsManager';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { unreadCount } = useNotifications();
+  const { profile } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        toast.error('Erro ao sair');
+      } else {
+        toast.success('Logout realizado com sucesso!');
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Erro ao sair');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -31,12 +52,23 @@ const Index = () => {
         <header className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">🚜 Granja Cavalli</h1>
+              <h1 className="text-3xl font-bold text-gray-800">🐄 Granja Cavalli</h1>
               <p className="text-gray-600 mt-2">Sistema de Gestão Rural Inteligente</p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Dados protegidos por usuário</p>
-              <p className="text-xs text-gray-500">Privacidade garantida</p>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Bem-vindo, {profile?.name || 'Usuário'}</p>
+                <p className="text-xs text-gray-500">Sistema seguro e privado</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLogout}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair</span>
+              </Button>
             </div>
           </div>
         </header>

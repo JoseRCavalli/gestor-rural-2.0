@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CommodityPrice {
@@ -23,7 +22,6 @@ export interface CommodityHistory {
 
 export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
   try {
-    // Buscar dados da CEPEA e do dólar em paralelo
     const [cepeaResponse, dollarResponse, generalResponse] = await Promise.all([
       supabase.functions.invoke('get-cepea-prices'),
       supabase.functions.invoke('get-dollar-price'),
@@ -35,14 +33,13 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
     const generalData = generalResponse.data;
     
     if (cepeaData && generalData) {
-      // Combinar dados da CEPEA com outros dados
       let commodities = generalData.map((item: CommodityPrice) => {
         if (item.name === 'Soja' && cepeaData.soja) {
           return {
             ...item,
             price: cepeaData.soja.price,
             change: cepeaData.soja.change,
-            trend: cepeaData.soja.trend,
+            trend: cepeaData.soja.change >= 0 ? 'up' : 'down', // Fixed trend logic
             source: cepeaData.soja.source
           };
         }
@@ -51,7 +48,7 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
             ...item,
             price: cepeaData.milho.price,
             change: cepeaData.milho.change,
-            trend: cepeaData.milho.trend,
+            trend: cepeaData.milho.change >= 0 ? 'up' : 'down', // Fixed trend logic
             source: cepeaData.milho.source
           };
         }
@@ -60,7 +57,7 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
             ...item,
             price: cepeaData.leite.price,
             change: cepeaData.leite.change,
-            trend: cepeaData.leite.trend,
+            trend: cepeaData.leite.change >= 0 ? 'up' : 'down', // Fixed trend logic
             source: cepeaData.leite.source
           };
         }
@@ -69,7 +66,7 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
             ...item,
             price: dollarData.price,
             change: dollarData.change,
-            trend: dollarData.trend,
+            trend: dollarData.change >= 0 ? 'up' : 'down', // Fixed trend logic
             source: dollarData.source
           };
         }
@@ -82,7 +79,6 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
     return generalData || [];
   } catch (error) {
     console.error('Error fetching commodity prices:', error);
-    // Fallback data with realistic Brazilian agricultural prices
     return [
       {
         name: 'Soja',
@@ -106,10 +102,10 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
       },
       {
         name: 'Leite',
-        price: 2.73,
+        price: 2.4099,
         unit: 'litro',
-        change: 0.8,
-        trend: 'up',
+        change: -1.12,
+        trend: 'down', // Fixed: negative change should be down trend
         icon: '🥛',
         lastUpdate: new Date().toISOString(),
         source: 'Conseleite - Paraná'

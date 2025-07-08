@@ -48,7 +48,14 @@ export const useNotifications = () => {
         return;
       }
 
-      setNotifications(data || []);
+      // Type assertion to ensure proper typing
+      const typedNotifications = (data || []).map(notification => ({
+        ...notification,
+        type: notification.type as 'info' | 'warning' | 'error' | 'success',
+        channel: notification.channel as 'app' | 'email' | 'whatsapp'
+      }));
+
+      setNotifications(typedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -72,7 +79,6 @@ export const useNotifications = () => {
       if (data) {
         setSettings(data);
       } else {
-        // Criar configurações padrão se não existirem
         await createDefaultSettings();
       }
     } catch (error) {
@@ -163,8 +169,14 @@ export const useNotifications = () => {
         return;
       }
 
-      setNotifications(prev => [data, ...prev]);
-      return data;
+      const typedNotification = {
+        ...data,
+        type: data.type as 'info' | 'warning' | 'error' | 'success',
+        channel: data.channel as 'app' | 'email' | 'whatsapp'
+      };
+
+      setNotifications(prev => [typedNotification, ...prev]);
+      return typedNotification;
     } catch (error) {
       console.error('Error creating notification:', error);
     }

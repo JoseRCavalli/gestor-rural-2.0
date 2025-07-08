@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { generateReportPDF } from '@/utils/pdfUtils';
 
 const ReportsManager = () => {
   const { reports, generateReport, deleteReport, loading } = useReports();
@@ -35,7 +36,6 @@ const ReportsManager = () => {
         toast.error('Erro ao gerar relatório');
       } else {
         toast.success('Relatório gerado com sucesso!');
-        // Refresh reports list
         window.location.reload();
       }
     } catch (error) {
@@ -64,19 +64,15 @@ const ReportsManager = () => {
     }
   };
 
-  const downloadReport = (report: any) => {
-    const dataStr = JSON.stringify(report.data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${report.title.replace(/\s+/g, '_')}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Relatório baixado!');
+  const downloadReportPDF = (report: any) => {
+    try {
+      const pdf = generateReportPDF(report.data, report.title);
+      pdf.save(`${report.title.replace(/\s+/g, '_')}.pdf`);
+      toast.success('Relatório baixado em PDF!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    }
   };
 
   if (loading) {
@@ -213,11 +209,12 @@ const ReportsManager = () => {
 
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => downloadReport(report)}
-                      className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                      title="Baixar relatório"
+                      onClick={() => downloadReportPDF(report)}
+                      className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors flex items-center space-x-1"
+                      title="Baixar relatório em PDF"
                     >
                       <Download className="w-4 h-4" />
+                      <span className="text-xs">PDF</span>
                     </button>
                     
                     <button
