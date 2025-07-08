@@ -34,11 +34,11 @@ serve(async (req) => {
         lastUpdate: new Date().toISOString()
       },
       leite: {
-        price: 2.73, // Editar manualmente
+        price: 2.4099, // Editar manualmente
         unit: 'litro',
-        change: 0.8, // Editar manualmente
+        change: -1.12, // Editar manualmente
         trend: 'up',
-        source: 'Conseleite - Paraná', // Fonte alterada conforme solicitado
+        source: 'Conseleite - Paraná (Junho)', // Fonte alterada conforme solicitado
         lastUpdate: new Date().toISOString()
       }
     };
