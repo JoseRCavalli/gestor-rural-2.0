@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
 import ImportVaccinations from './ImportVaccinations';
+import VaccinationForm from './VaccinationForm';
 
 const AgendaVacinal = () => {
   const { vaccinations, vaccineTypes, loading } = useVaccinations();
@@ -86,25 +87,28 @@ const AgendaVacinal = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">💉 Agenda Vacinal</h2>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
-              <Upload className="w-4 h-4" />
-              <span>Importar Vacinações</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Importar Vacinações</DialogTitle>
-              <DialogDescription>
-                Importe vacinações em lote usando arquivo CSV ou Excel
-              </DialogDescription>
-            </DialogHeader>
-            <ImportVaccinations />
-          </DialogContent>
-        </Dialog>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <VaccinationForm />
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Upload className="w-4 h-4" />
+                <span>Importar Vacinações</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Importar Vacinações</DialogTitle>
+                <DialogDescription>
+                  Importe vacinações em lote usando arquivo CSV ou Excel
+                </DialogDescription>
+              </DialogHeader>
+              <ImportVaccinations />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Cards de Estatísticas */}

@@ -1,476 +1,493 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Clock, MapPin, User, Edit2, Trash2, Filter, Check, X, Upload } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Clock, CheckCircle, AlertTriangle, Syringe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useEvents, Event } from '@/hooks/useEvents';
+import { useEvents } from '@/hooks/useEvents';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
-
-interface ExtendedEvent extends Event {
-  isVaccination?: boolean;
-}
+import { toast } from 'sonner';
 
 const Agenda = () => {
   const { events, createEvent, updateEvent, deleteEvent, loading } = useEvents();
-  const { vaccinations } = useVaccinations();
+  const { vaccinations, vaccineTypes } = useVaccinations();
   const { animals } = useAnimals();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<any>(null);
-  const [showPastEvents, setShowPastEvents] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [formData, setFormData] = useState({
+  const [eventForm, setEventForm] = useState({
     title: '',
     description: '',
     date: '',
-    time: '',
-    type: 'tarefa',
-    icon: '📅',
-    completed: false
+    time: '08:00',
+    type: 'task',
+    icon: '📅'
   });
 
-  // Obter data atual no formato correto (incluindo hora para comparação mais precisa)
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const currentTime = now.getHours() * 60 + now.getMinutes(); // minutos desde meia-noite
+  // Combine events and vaccinations for display
+  const allEvents = [
+    ...events,
+    ...vaccinations
+      .filter(vacc => vacc.next_dose_date)
+      .map(vacc => {
+        const animal = animals.find(a => a.id === vacc.animal_id);
+        const vaccineType = vaccineTypes.find(vt => vt.id === vacc.vaccine_type_id);
+        return {
+          id: `vacc-${vacc.id}`,
+          title: `Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
+          description: `Vacina: ${vaccineType?.name}`,
+          date: vacc.next_dose_date!,
+          time: '08:00',
+          type: 'vaccination',
+          icon: '💉',
+          completed: false,
+          user_id: vacc.user_id,
+          created_at: vacc.created_at,
+          updated_at: vacc.updated_at
+        };
+      })
+  ];
+
+  const formatDateForInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateForDisplay = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Get events for selected date
+  const selectedDateEvents = allEvents.filter(event => {
+    if (!selectedDate) return false;
+    const eventDate = new Date(event.date);
+    return eventDate.toDateString() === selectedDate.toDateString();
+  });
+
+  // Get upcoming events (next 7 days)
+  const today = new Date();
+  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
   
-  // Filtrar eventos considerando data E hora
-  const futureEvents = events.filter(event => {
-    if (event.date > today) return true;
-    if (event.date === today) {
-      const eventTime = event.time.split(':');
-      const eventMinutes = parseInt(eventTime[0]) * 60 + parseInt(eventTime[1]);
-      return eventMinutes > currentTime;
+  const upcomingEvents = allEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate >= today && eventDate <= nextWeek && !event.completed;
+  }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Overdue events
+  const overdueEvents = allEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate < today && !event.completed;
+  });
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!eventForm.title || !eventForm.date) {
+      toast.error('Preencha os campos obrigatórios');
+      return;
     }
-    return false;
-  });
-  
-  const pastEvents = events.filter(event => {
-    if (event.date < today) return true;
-    if (event.date === today) {
-      const eventTime = event.time.split(':');
-      const eventMinutes = parseInt(eventTime[0]) * 60 + parseInt(eventTime[1]);
-      return eventMinutes <= currentTime;
-    }
-    return false;
-  });
-  
-  // Gerar eventos de vacinação pendentes (incluindo futuras e vencidas)
-  const vaccinationEvents: ExtendedEvent[] = vaccinations
-    .filter(vacc => vacc.next_dose_date)
-    .map(vacc => {
-      const animal = animals.find(a => a.id === vacc.animal_id);
-      const isOverdue = vacc.next_dose_date! < today;
-      return {
-        id: `vacc-${vacc.id}`,
-        user_id: vacc.user_id,
-        title: `${isOverdue ? '⚠️ ATRASADA - ' : ''}Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
-        description: `Próxima dose de vacina${isOverdue ? ' (VENCIDA)' : ''}`,
-        date: vacc.next_dose_date!,
-        time: '08:00',
-        type: 'vacina',
-        icon: isOverdue ? '⚠️' : '💉',
-        isVaccination: true,
-        completed: false,
-        created_at: '',
-        updated_at: ''
-      };
-    });
 
-  const displayEvents = showPastEvents ? pastEvents : futureEvents;
-  const allEvents: ExtendedEvent[] = showPastEvents 
-    ? displayEvents.map(e => ({ ...e, isVaccination: false }))
-    : [...displayEvents.map(e => ({ ...e, isVaccination: false })), ...vaccinationEvents]
-      .sort((a, b) => {
-        const dateCompare = a.date.localeCompare(b.date);
-        if (dateCompare === 0) {
-          return a.time.localeCompare(b.time);
-        }
-        return dateCompare;
+    try {
+      await createEvent({
+        title: eventForm.title,
+        description: eventForm.description,
+        date: eventForm.date,
+        time: eventForm.time,
+        type: eventForm.type,
+        icon: eventForm.icon,
+        completed: false
       });
-
-  const typeIcons = {
-    'tarefa': '📋',
-    'vacina': '💉',
-    'reunião': '👥',
-    'manutenção': '🔧',
-    'manejo': '🐄'
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleTypeChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      type: value,
-      icon: typeIcons[value as keyof typeof typeIcons] || '📅'
-    }));
-  };
-
-  const handleOpenDialog = (event?: any) => {
-    if (event) {
-      setEditingEvent(event);
-      setFormData({
-        title: event.title,
-        description: event.description || '',
-        date: event.date,
-        time: event.time,
-        type: event.type || 'tarefa',
-        icon: event.icon,
-        completed: event.completed || false
-      });
-    } else {
-      setEditingEvent(null);
-      setFormData({
+      
+      setEventForm({
         title: '',
         description: '',
         date: '',
-        time: '',
-        type: 'tarefa',
-        icon: '📋',
-        completed: false
+        time: '08:00',
+        type: 'task',
+        icon: '📅'
       });
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingEvent(null);
-  };
-
-  const handleSubmit = async () => {
-    if (editingEvent && !editingEvent.isVaccination) {
-      await updateEvent(editingEvent.id, formData);
-    } else if (!editingEvent) {
-      await createEvent(formData);
-    }
-    handleCloseDialog();
-  };
-
-  const handleDelete = async (event: ExtendedEvent) => {
-    if (!event.isVaccination) {
-      await deleteEvent(event.id);
+      setIsDialogOpen(false);
+      toast.success('Evento criado com sucesso!');
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast.error('Erro ao criar evento');
     }
   };
 
-  const toggleEventCompleted = async (event: ExtendedEvent) => {
-    if (!event.isVaccination) {
+  const toggleEventCompletion = async (event: any) => {
+    // Only toggle completion for regular events, not vaccinations
+    if (event.type === 'vaccination') {
+      toast.info('Para marcar vacinação como concluída, vá para a aba Vacinas');
+      return;
+    }
+
+    try {
       await updateEvent(event.id, { completed: !event.completed });
+      toast.success(event.completed ? 'Evento reaberto' : 'Evento concluído!');
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast.error('Erro ao atualizar evento');
     }
   };
 
-  const getDaysInMonth = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days = [];
-    
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
+  useEffect(() => {
+    if (selectedDate) {
+      setEventForm(prev => ({ ...prev, date: formatDateForInput(selectedDate) }));
     }
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayEvents = allEvents.filter(event => event.date === dateStr);
-      days.push({ day, dateStr, events: dayEvents });
-    }
-    
-    return days;
-  };
+  }, [selectedDate]);
 
-  const handleDateClick = (dateStr: string) => {
-    setSelectedDate(dateStr);
-  };
-
-  const getEventsForSelectedDate = () => {
-    if (!selectedDate) return [];
-    return allEvents.filter(event => event.date === selectedDate);
-  };
+  // Get dates that have events for calendar highlighting
+  const eventDates = allEvents.map(event => new Date(event.date));
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">📅 Agenda Rural</h2>
-        <div className="flex items-center space-x-4">
-          <Button
-            variant={showPastEvents ? "default" : "outline"}
-            onClick={() => setShowPastEvents(!showPastEvents)}
-            className="flex items-center space-x-2"
-          >
-            <Filter className="w-4 h-4" />
-            <span>{showPastEvents ? 'Ver Futuros' : 'Ver Passados'}</span>
-          </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center space-x-2">
-                <Plus className="w-4 h-4" />
-                <span>Novo Evento</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
-                <DialogDescription>
-                  Preencha os campos abaixo para {editingEvent ? 'editar' : 'criar'} um evento.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center space-x-2">
+              <Plus className="w-4 h-4" />
+              <span>Novo Evento</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Criar Novo Evento</DialogTitle>
+              <DialogDescription>
+                Adicione um evento à sua agenda rural
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateEvent} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Título *</Label>
+                <Input
+                  id="title"
+                  value={eventForm.title}
+                  onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Ex: Aplicar vacina, Ordenha especial..."
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={eventForm.description}
+                  onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Detalhes do evento..."
+                  rows={3}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Título</Label>
+                  <Label htmlFor="date">Data *</Label>
                   <Input
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="Título do evento"
+                    id="date"
+                    type="date"
+                    value={eventForm.date}
+                    onChange={(e) => setEventForm(prev => ({ ...prev, date: e.target.value }))}
+                    required
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="time">Horário</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={eventForm.time}
+                    onChange={(e) => setEventForm(prev => ({ ...prev, time: e.target.value }))}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="type">Tipo</Label>
-                  <Select value={formData.type} onValueChange={handleTypeChange}>
+                  <Select value={eventForm.type} onValueChange={(value) => setEventForm(prev => ({ ...prev, type: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="tarefa">📋 Tarefa</SelectItem>
-                      <SelectItem value="vacina">💉 Vacina</SelectItem>
-                      <SelectItem value="reunião">👥 Reunião</SelectItem>
-                      <SelectItem value="manutenção">🔧 Manutenção</SelectItem>
-                      <SelectItem value="manejo">🐄 Manejo</SelectItem>
+                      <SelectItem value="task">Tarefa</SelectItem>
+                      <SelectItem value="appointment">Compromisso</SelectItem>
+                      <SelectItem value="maintenance">Manutenção</SelectItem>
+                      <SelectItem value="health">Saúde Animal</SelectItem>
+                      <SelectItem value="feeding">Alimentação</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Data</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Hora</Label>
-                    <Input
-                      id="time"
-                      name="time"
-                      type="time"
-                      value={formData.time}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Descrição do evento (opcional)"
-                    rows={3}
-                  />
+                  <Label htmlFor="icon">Ícone</Label>
+                  <Select value={eventForm.icon} onValueChange={(value) => setEventForm(prev => ({ ...prev, icon: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="📅">📅 Padrão</SelectItem>
+                      <SelectItem value="🐄">🐄 Gado</SelectItem>
+                      <SelectItem value="💉">💉 Vacinação</SelectItem>
+                      <SelectItem value="🚜">🚜 Equipamento</SelectItem>
+                      <SelectItem value="🌱">🌱 Plantio</SelectItem>
+                      <SelectItem value="⚡">⚡ Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+              
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={handleCloseDialog}>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSubmit}>
-                  {editingEvent ? 'Salvar' : 'Criar'}
-                </Button>
+                <Button type="submit">Criar Evento</Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Próximos 7 dias</p>
+                  <p className="text-2xl font-bold text-blue-600">{upcomingEvents.length}</p>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Em Atraso</p>
+                  <p className="text-2xl font-bold text-red-600">{overdueEvents.length}</p>
+                </div>
+                <div className="p-2 bg-red-100 rounded-full">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total de Eventos</p>
+                  <p className="text-2xl font-bold text-green-600">{allEvents.length}</p>
+                </div>
+                <div className="p-2 bg-green-100 rounded-full">
+                  <CalendarIcon className="w-5 h-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calendário Interativo */}
-        <motion.div 
+        {/* Calendar */}
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          transition={{ delay: 0.4 }}
         >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
-            Calendário {showPastEvents ? 'de Eventos Passados' : 'de Próximos Eventos'}
-          </h3>
-          
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-              <div key={day} className="text-center font-medium text-gray-600 py-2 text-sm">
-                {day}
-              </div>
-            ))}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Calendário</CardTitle>
+              <CardDescription>Selecione uma data para ver os eventos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md border w-full"
+                modifiers={{
+                  hasEvent: eventDates
+                }}
+                modifiersStyles={{
+                  hasEvent: {
+                    backgroundColor: '#dbeafe',
+                    color: '#1e40af',
+                    fontWeight: 'bold'
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {getDaysInMonth().map((dayData, index) => (
-              <div
-                key={index}
-                className={`h-10 flex items-center justify-center rounded-lg text-sm relative cursor-pointer transition-colors ${
-                  dayData
-                    ? `text-gray-800 hover:bg-gray-100 ${
-                        dayData.events.length > 0 ? 'bg-green-100 border border-green-300' : ''
-                      } ${
-                        dayData.dateStr === today ? 'bg-green-600 text-white' : ''
-                      } ${
-                        selectedDate === dayData.dateStr ? 'ring-2 ring-green-500' : ''
-                      }`
-                    : ''
-                }`}
-                onClick={() => dayData && handleDateClick(dayData.dateStr)}
-              >
-                {dayData?.day}
-                {dayData && dayData.events.length > 0 && dayData.dateStr !== today && (
-                  <span className="absolute bottom-1 w-1 h-1 bg-green-500 rounded-full"></span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {selectedDate && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-gray-800 mb-2">
-                Eventos para {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}:
-              </h4>
-              {getEventsForSelectedDate().length === 0 ? (
-                <p className="text-sm text-gray-500">Nenhum evento neste dia.</p>
+        {/* Events for Selected Date */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <CalendarIcon className="w-5 h-5" />
+                <span>
+                  {selectedDate ? formatDateForDisplay(selectedDate.toISOString()) : 'Selecione uma data'}
+                </span>
+              </CardTitle>
+              <CardDescription>
+                {selectedDateEvents.length} evento(s) nesta data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {selectedDateEvents.length === 0 ? (
+                <div className="text-center py-8">
+                  <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Nenhum evento nesta data</p>
+                </div>
               ) : (
-                <div className="space-y-2">
-                  {getEventsForSelectedDate().map((event) => (
-                    <div key={event.id} className="flex items-center space-x-2 text-sm">
-                      <span>{event.icon}</span>
-                      <span className="font-medium">{event.title}</span>
-                      <span className="text-gray-500">{event.time}</span>
-                      {event.isVaccination && (
-                        <Badge variant="secondary" className="text-xs">Vacinação</Badge>
-                      )}
+                <div className="space-y-3">
+                  {selectedDateEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        event.completed 
+                          ? 'bg-green-50 border-green-200' 
+                          : event.type === 'vaccination'
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                      onClick={() => toggleEventCompletion(event)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3">
+                          <span className="text-lg">{event.icon}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className={`font-medium ${event.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                                {event.title}
+                              </h4>
+                              {event.type === 'vaccination' && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Syringe className="w-3 h-3 mr-1" />
+                                  Vacina
+                                </Badge>
+                              )}
+                            </div>
+                            {event.description && (
+                              <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-1">{event.time}</p>
+                          </div>
+                        </div>
+                        {event.completed && (
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-          )}
-        </motion.div>
-
-        {/* Lista de Eventos */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-        >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <Clock className="w-5 h-5 mr-2" />
-            {showPastEvents ? 'Eventos Passados' : 'Próximos Eventos'}
-            {!showPastEvents && vaccinationEvents.filter(v => v.date < today).length > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {vaccinationEvents.filter(v => v.date < today).length} Atrasadas
-              </Badge>
-            )}
-          </h3>
-          
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="text-center py-4">Carregando eventos...</div>
-            ) : allEvents.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">
-                {showPastEvents ? 'Nenhum evento passado encontrado.' : 'Nenhum evento futuro encontrado.'}
-              </div>
-            ) : (
-              allEvents.map((event) => {
-                const isOverdue = event.isVaccination && event.date < today;
-                return (
-                  <div key={event.id} className={`flex items-center justify-between p-3 rounded-lg ${
-                    event.completed ? 'bg-green-50 border border-green-200' : 
-                    isOverdue ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
-                  }`}>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-xl">{event.icon}</span>
-                      <div>
-                        <h4 className={`font-medium ${event.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                          {event.title}
-                        </h4>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <span className="flex items-center">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {new Date(event.date).toLocaleDateString('pt-BR')}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {event.time}
-                          </span>
-                        </div>
-                        {event.description && (
-                          <p className="text-xs text-gray-500 mt-1">{event.description}</p>
-                        )}
-                        <div className="flex items-center space-x-2 mt-1">
-                          {event.isVaccination && (
-                            <Badge variant="secondary">Vacinação</Badge>
-                          )}
-                          {isOverdue && (
-                            <Badge variant="destructive">ATRASADA</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {!event.isVaccination && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleEventCompleted(event)}
-                            className={event.completed ? "text-green-600" : "text-gray-400"}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenDialog(event)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(event)}
-                            className="text-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
+
+      {/* Upcoming Events */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              <span>Próximos Eventos</span>
+            </CardTitle>
+            <CardDescription>
+              Eventos dos próximos 7 dias
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {upcomingEvents.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <p className="text-green-600 font-medium">Agenda em dia!</p>
+                <p className="text-sm text-gray-500">Nenhum evento próximo</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingEvents.slice(0, 5).map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => toggleEventCompletion(event)}
+                  >
+                    <span className="text-lg">{event.icon}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-gray-900">{event.title}</h4>
+                        {event.type === 'vaccination' && (
+                          <Badge variant="outline" className="text-xs">
+                            <Syringe className="w-3 h-3 mr-1" />
+                            Vacina
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {formatDateForDisplay(event.date)} às {event.time}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {Math.ceil((new Date(event.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dia(s)
+                    </Badge>
+                  </div>
+                ))}
+                {upcomingEvents.length > 5 && (
+                  <p className="text-xs text-gray-500 text-center">
+                    +{upcomingEvents.length - 5} eventos adicionais
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
