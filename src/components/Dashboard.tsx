@@ -18,13 +18,14 @@ const Dashboard = () => {
   
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (hour < 12) return { greeting: 'Bom dia', emoji: '👋' };
+    if (hour < 18) return { greeting: 'Boa tarde', emoji: '👋' };
+    return { greeting: 'Boa noite', emoji: '😴' };
   };
 
-  const getUserName = () => {
-    return profile?.name || 'Usuário';
+  const getUserFirstName = () => {
+    const fullName = profile?.name || 'Usuário';
+    return fullName.split(' ')[0];
   };
 
   const getStockStatus = (quantity: number, minStock: number) => {
@@ -90,7 +91,7 @@ const Dashboard = () => {
       days.push(null);
     }
     
-    // Add days of the month - CORRIGIDO: usar UTC para evitar problemas de timezone
+    // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const hasEvents = events.some(event => event.date === dateStr);
@@ -100,6 +101,8 @@ const Dashboard = () => {
     return days;
   };
 
+  const greetingInfo = getGreeting();
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
@@ -108,7 +111,9 @@ const Dashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 text-white"
       >
-        <h2 className="text-2xl font-bold mb-2">{getGreeting()}, {getUserName()}!</h2>
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          {greetingInfo.greeting}, {getUserFirstName()}! {greetingInfo.emoji}
+        </h2>
         <p className="text-green-100">Bem-vindo ao seu painel de gestão rural</p>
       </motion.div>
 
@@ -192,7 +197,7 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Interactive Calendar - CORRIGIDO */}
+        {/* Interactive Calendar */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -282,7 +287,7 @@ const Dashboard = () => {
                 </div>
                 <p className="text-lg font-bold text-green-600">R$ {commodity.price.toFixed(2)}</p>
                 <p className="text-xs text-gray-600">{commodity.unit}</p>
-                <p className={`text-sm font-medium ${commodity.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-sm font-medium ${commodity.change < 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {commodity.change > 0 ? '+' : ''}{commodity.change.toFixed(2)}%
                 </p>
                 {commodity.source && (

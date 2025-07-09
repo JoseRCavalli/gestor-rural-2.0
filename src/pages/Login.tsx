@@ -13,6 +13,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +36,33 @@ const Login = () => {
       toast.error('Erro ao fazer login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Digite seu email primeiro');
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+
+      if (error) {
+        console.error('Reset password error:', error);
+        toast.error('Erro ao enviar email de recuperação: ' + error.message);
+      } else {
+        toast.success('Email de recuperação enviado! Verifique sua caixa de entrada.');
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      toast.error('Erro ao enviar email de recuperação');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -90,6 +118,17 @@ const Login = () => {
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
+
+            <div className="mt-4 text-center">
+              <Button 
+                variant="link" 
+                onClick={handleForgotPassword}
+                disabled={resetLoading}
+                className="text-sm text-green-600 hover:underline p-0"
+              >
+                {resetLoading ? 'Enviando...' : 'Esqueci minha senha'}
+              </Button>
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
