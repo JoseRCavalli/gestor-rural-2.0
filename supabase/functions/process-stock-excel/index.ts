@@ -1,6 +1,5 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,8 +36,11 @@ serve(async (req) => {
 
     console.log('Processing file:', file_name);
 
-    // Remove data URL prefix
-    const base64Data = file_data.replace(/^data:[^;]+;base64,/, '');
+    // Remove data URL prefix if present
+    let base64Data = file_data;
+    if (file_data.includes(',')) {
+      base64Data = file_data.split(',')[1];
+    }
     
     // Decode base64 to binary
     const fileBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
@@ -74,12 +76,19 @@ serve(async (req) => {
       console.log('Processing Excel file');
       
       // For now, we'll provide example data and suggest the user to convert to CSV
-      // In a production environment, you'd use a library like sheetjs
       return new Response(
         JSON.stringify({ 
           error: 'Para arquivos Excel, por favor converta para CSV primeiro. Em breve suportaremos Excel diretamente.',
           suggestion: 'Abra seu arquivo Excel, vá em Arquivo > Salvar Como > CSV (separado por vírgulas)'
         }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Formato de arquivo não suportado. Use CSV (.csv)' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -117,7 +126,7 @@ serve(async (req) => {
     const startRow = hasHeaders ? 1 : 0;
     console.log('Has headers:', hasHeaders, 'Starting from row:', startRow);
 
-    for (let i = startRow; i < extractedData.length && i < startRow + 50; i++) { // Limit to 50 items for preview
+    for (let i = startRow; i < extractedData.length && i < startRow + 100; i++) {
       const row = extractedData[i];
       if (!row || row.length < 2) continue; // Skip rows with insufficient data
 
@@ -219,7 +228,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing Excel/CSV:', error);
+    console.error('Error processing file:', error);
     
     return new Response(
       JSON.stringify({ error: 'Erro ao processar arquivo: ' + error.message }),

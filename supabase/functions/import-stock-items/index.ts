@@ -25,6 +25,9 @@ serve(async (req) => {
       );
     }
 
+    console.log('Processing import for user:', user_id);
+    console.log('Items to import:', items.length);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -33,26 +36,25 @@ serve(async (req) => {
     // Prepare items for insertion
     const itemsToInsert = items.map((item: any) => ({
       name: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      category: item.category,
-      min_stock: item.min_stock,
+      quantity: Math.floor(item.quantity || 0),
+      unit: item.unit || 'kg',
+      category: item.category || 'Geral',
+      min_stock: Math.floor(item.min_stock || 0),
       user_id: user_id
     }));
+
+    console.log('Items prepared for insertion:', itemsToInsert);
 
     // Insert items into database
     const { data, error } = await supabase
       .from('stock_items')
-      .upsert(itemsToInsert, { 
-        onConflict: 'user_id,name',
-        ignoreDuplicates: false 
-      })
+      .insert(itemsToInsert)
       .select();
 
     if (error) {
       console.error('Database error:', error);
       return new Response(
-        JSON.stringify({ error: 'Falha ao importar itens do estoque' }),
+        JSON.stringify({ error: 'Falha ao importar itens do estoque: ' + error.message }),
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -60,25 +62,12 @@ serve(async (req) => {
       );
     }
 
+    console.log('Items inserted successfully:', data?.length);
+
     // Check for low stock items and create notifications
     const lowStockItems = data?.filter(item => item.quantity <= item.min_stock) || [];
     
-    if (lowStockItems.length > 0) {
-      // Send notification for low stock items
-      const notificationPromises = lowStockItems.map(item => 
-        supabase.functions.invoke('send-notification', {
-          body: {
-            user_id: user_id,
-            title: 'Alerta de Estoque Baixo',
-            message: `O item "${item.name}" está com estoque baixo (${item.quantity} ${item.unit}). Estoque mínimo: ${item.min_stock} ${item.unit}`,
-            type: 'stock',
-            channel: 'app'
-          }
-        })
-      );
-
-      await Promise.all(notificationPromises);
-    }
+    console.log('Low stock items found:', lowStockItems.length);
 
     return new Response(
       JSON.stringify({ 
@@ -96,7 +85,7 @@ serve(async (req) => {
     console.error('Error importing items:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Erro interno do servidor: ' + error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

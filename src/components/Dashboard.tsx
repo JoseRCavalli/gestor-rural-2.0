@@ -1,10 +1,13 @@
+
 import { motion } from 'framer-motion';
-import { Calendar, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, TrendingUp, AlertTriangle, CloudRain, Syringe, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEvents } from '@/hooks/useEvents';
 import { useStock } from '@/hooks/useStock';
 import { useWeather } from '@/hooks/useWeather';
 import { useCommodities } from '@/hooks/useCommodities';
+import { useVaccinations } from '@/hooks/useVaccinations';
+import { useAnimals } from '@/hooks/useAnimals';
 import { useState } from 'react';
 
 const Dashboard = () => {
@@ -13,6 +16,8 @@ const Dashboard = () => {
   const { stockItems } = useStock();
   const { weather, loading: weatherLoading } = useWeather();
   const { commodities, loading: commoditiesLoading } = useCommodities();
+  const { vaccinations } = useVaccinations();
+  const { animals } = useAnimals();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   
   const getGreeting = () => {
@@ -46,6 +51,33 @@ const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayEvents = events.filter(event => event.date === today);
 
+  // Get next 3 days events
+  const nextDays = [];
+  for (let i = 0; i < 3; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    nextDays.push(date.toISOString().split('T')[0]);
+  }
+  const upcomingEvents = events.filter(event => nextDays.includes(event.date));
+
+  // Get vaccination alerts
+  const vaccinationAlerts = vaccinations
+    .filter(vacc => {
+      if (!vacc.next_dose_date) return false;
+      const nextDose = new Date(vacc.next_dose_date);
+      const today = new Date();
+      const diffDays = Math.ceil((nextDose.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return diffDays <= 7 && diffDays >= 0; // Próximos 7 dias
+    })
+    .map(vacc => {
+      const animal = animals.find(a => a.id === vacc.animal_id);
+      return {
+        message: `Vacinação de ${animal?.name || animal?.tag} vencendo em ${Math.ceil((new Date(vacc.next_dose_date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias`,
+        type: 'info',
+        icon: '💉'
+      };
+    });
+
   // Get events for selected date
   const selectedDateEvents = selectedDate 
     ? events.filter(event => event.date === selectedDate)
@@ -63,7 +95,33 @@ const Dashboard = () => {
       icon: getStockStatus(item.quantity, item.min_stock) === 'Crítico' ? '🚨' : '⚠️'
     }));
 
-  const alerts = [...stockAlerts];
+  // Weather alerts
+  const weatherAlerts = [];
+  if (weather && !weatherLoading) {
+    if (weather.temperature > 35) {
+      weatherAlerts.push({
+        message: `Temperatura alta (${weather.temperature}°C) - Cuidado com o gado`,
+        type: 'warning',
+        icon: '🌡️'
+      });
+    }
+    if (weather.temperature < 5) {
+      weatherAlerts.push({
+        message: `Temperatura baixa (${weather.temperature}°C) - Proteger animais`,
+        type: 'info',
+        icon: '🥶'
+      });
+    }
+    if (weather.description.includes('chuva') || weather.description.includes('rain')) {
+      weatherAlerts.push({
+        message: `Previsão de chuva - Verificar abrigos e bebedouros`,
+        type: 'info',
+        icon: '🌧️'
+      });
+    }
+  }
+
+  const alerts = [...stockAlerts, ...weatherAlerts, ...vaccinationAlerts];
 
   const getAlertColor = (type: string) => {
     switch (type) {
@@ -124,7 +182,7 @@ const Dashboard = () => {
         className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
       >
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-          <span className="text-xl mr-2">🌤️</span>
+          <CloudRain className="w-5 h-5 mr-2" />
           Clima em Tempo Real
         </h3>
         <div className="flex items-center justify-between">
@@ -196,7 +254,7 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Interactive Calendar */}
+        {/* Próximos Compromissos */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -204,63 +262,26 @@ const Dashboard = () => {
           className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
-            Calendário Interativo
+            <CalendarIcon className="w-5 h-5 mr-2" />
+            Próximos Compromissos
           </h3>
-          
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-              <div key={day} className="text-center font-medium text-gray-600 py-2 text-sm">
-                {day}
-              </div>
-            ))}
+          <div className="space-y-3">
+            {upcomingEvents.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhum compromisso nos próximos dias.</p>
+            ) : (
+              upcomingEvents.slice(0, 4).map((event) => (
+                <div key={event.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <span className="text-lg">{event.icon}</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{event.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(event.date).toLocaleDateString('pt-BR')} às {event.time}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {getDaysInMonth().map((dayData, index) => (
-              <div
-                key={index}
-                className={`h-10 flex items-center justify-center rounded-lg cursor-pointer transition-colors text-sm relative ${
-                  dayData
-                    ? `hover:bg-gray-100 text-gray-800 ${
-                        dayData.hasEvents ? 'bg-green-100 border border-green-300' : ''
-                      } ${
-                        dayData.dateStr === today ? 'bg-green-600 text-white' : ''
-                      } ${
-                        dayData.dateStr === selectedDate ? 'ring-2 ring-blue-500' : ''
-                      }`
-                    : ''
-                }`}
-                onClick={() => dayData && setSelectedDate(dayData.dateStr)}
-              >
-                {dayData?.day}
-                {dayData?.hasEvents && dayData.dateStr !== today && (
-                  <span className="absolute bottom-1 w-1 h-1 bg-green-500 rounded-full"></span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {selectedDate && (
-            <div className="border-t pt-3">
-              <p className="font-medium text-gray-800 mb-2">
-                Eventos em {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}:
-              </p>
-              <div className="space-y-2">
-                {selectedDateEvents.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Nenhum evento nesta data.</p>
-                ) : (
-                  selectedDateEvents.map((event) => (
-                    <div key={event.id} className="flex items-center space-x-2 text-sm p-2 bg-gray-50 rounded">
-                      <span>{event.icon}</span>
-                      <span className="font-medium">{event.title}</span>
-                      <span className="text-gray-500">{event.time}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
         </motion.div>
       </div>
 
@@ -311,9 +332,9 @@ const Dashboard = () => {
         >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
             <AlertTriangle className="w-5 h-5 mr-2" />
-            Alertas
+            Alertas em Tempo Real
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-64 overflow-y-auto">
             {alerts.length === 0 ? (
               <p className="text-gray-500 text-sm">Nenhum alerta no momento.</p>
             ) : (
