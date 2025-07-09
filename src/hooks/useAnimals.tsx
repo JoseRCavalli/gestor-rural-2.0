@@ -134,7 +134,7 @@ export const useAnimals = () => {
   };
 
   useEffect(() => {
-    fetchEvents();
+    fetchAnimals();
   }, [user]);
 
   return {
