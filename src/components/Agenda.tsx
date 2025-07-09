@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Clock, MapPin, User, Edit2, Trash2, Filter } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, User, Edit2, Trash2, Filter, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,18 @@ import { useEvents } from '@/hooks/useEvents';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
 
+interface ExtendedEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  time: string;
+  type: string;
+  icon: string;
+  isVaccination?: boolean;
+  completed?: boolean;
+}
+
 const Agenda = () => {
   const { events, createEvent, updateEvent, deleteEvent, loading } = useEvents();
   const { vaccinations } = useVaccinations();
@@ -21,13 +33,15 @@ const Agenda = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     date: '',
     time: '',
     type: 'tarefa',
-    icon: '📅'
+    icon: '📅',
+    completed: false
   });
 
   const today = new Date().toISOString().split('T')[0];
@@ -35,26 +49,30 @@ const Agenda = () => {
   // Filtrar eventos passados e futuros
   const futureEvents = events.filter(event => event.date >= today);
   const pastEvents = events.filter(event => event.date < today);
-  const displayEvents = showPastEvents ? pastEvents : futureEvents;
-
+  
   // Gerar eventos de vacinação pendentes
-  const vaccinationEvents = vaccinations
+  const vaccinationEvents: ExtendedEvent[] = vaccinations
     .filter(vacc => vacc.next_dose_date && vacc.next_dose_date >= today)
     .map(vacc => {
       const animal = animals.find(a => a.id === vacc.animal_id);
       return {
         id: `vacc-${vacc.id}`,
-        title: `Vacinação - ${animal?.name || animal?.tag}`,
+        title: `Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
         description: `Próxima dose de vacina`,
         date: vacc.next_dose_date!,
         time: '08:00',
         type: 'vacina',
         icon: '💉',
-        isVaccination: true
+        isVaccination: true,
+        completed: false
       };
     });
 
-  const allEvents = showPastEvents ? displayEvents : [...displayEvents, ...vaccinationEvents].sort((a, b) => a.date.localeCompare(b.date));
+  const displayEvents = showPastEvents ? pastEvents : futureEvents;
+  const allEvents: ExtendedEvent[] = showPastEvents 
+    ? displayEvents.map(e => ({ ...e, isVaccination: false }))
+    : [...displayEvents.map(e => ({ ...e, isVaccination: false })), ...vaccinationEvents]
+      .sort((a, b) => a.date.localeCompare(b.date));
 
   const typeIcons = {
     'tarefa': '📋',
@@ -89,7 +107,8 @@ const Agenda = () => {
         date: event.date,
         time: event.time,
         type: event.type || 'tarefa',
-        icon: event.icon
+        icon: event.icon,
+        completed: event.completed || false
       });
     } else {
       setEditingEvent(null);
@@ -99,7 +118,8 @@ const Agenda = () => {
         date: '',
         time: '',
         type: 'tarefa',
-        icon: '📋'
+        icon: '📋',
+        completed: false
       });
     }
     setIsDialogOpen(true);
@@ -119,9 +139,15 @@ const Agenda = () => {
     handleCloseDialog();
   };
 
-  const handleDelete = async (event: any) => {
+  const handleDelete = async (event: ExtendedEvent) => {
     if (!event.isVaccination) {
       await deleteEvent(event.id);
+    }
+  };
+
+  const toggleEventCompleted = async (event: ExtendedEvent) => {
+    if (!event.isVaccination) {
+      await updateEvent(event.id, { completed: !event.completed });
     }
   };
 
@@ -142,11 +168,20 @@ const Agenda = () => {
     
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const hasEvents = allEvents.some(event => event.date === dateStr);
-      days.push({ day, dateStr, hasEvents });
+      const dayEvents = allEvents.filter(event => event.date === dateStr);
+      days.push({ day, dateStr, events: dayEvents });
     }
     
     return days;
+  };
+
+  const handleDateClick = (dateStr: string) => {
+    setSelectedDate(dateStr);
+  };
+
+  const getEventsForSelectedDate = () => {
+    if (!selectedDate) return [];
+    return allEvents.filter(event => event.date === selectedDate);
   };
 
   return (
@@ -273,23 +308,50 @@ const Agenda = () => {
             {getDaysInMonth().map((dayData, index) => (
               <div
                 key={index}
-                className={`h-10 flex items-center justify-center rounded-lg text-sm relative ${
+                className={`h-10 flex items-center justify-center rounded-lg text-sm relative cursor-pointer transition-colors ${
                   dayData
-                    ? `text-gray-800 ${
-                        dayData.hasEvents ? 'bg-green-100 border border-green-300' : ''
+                    ? `text-gray-800 hover:bg-gray-100 ${
+                        dayData.events.length > 0 ? 'bg-green-100 border border-green-300' : ''
                       } ${
                         dayData.dateStr === today ? 'bg-green-600 text-white' : ''
+                      } ${
+                        selectedDate === dayData.dateStr ? 'ring-2 ring-green-500' : ''
                       }`
                     : ''
                 }`}
+                onClick={() => dayData && handleDateClick(dayData.dateStr)}
               >
                 {dayData?.day}
-                {dayData?.hasEvents && dayData.dateStr !== today && (
+                {dayData && dayData.events.length > 0 && dayData.dateStr !== today && (
                   <span className="absolute bottom-1 w-1 h-1 bg-green-500 rounded-full"></span>
                 )}
               </div>
             ))}
           </div>
+
+          {selectedDate && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-gray-800 mb-2">
+                Eventos para {new Date(selectedDate).toLocaleDateString('pt-BR')}:
+              </h4>
+              {getEventsForSelectedDate().length === 0 ? (
+                <p className="text-sm text-gray-500">Nenhum evento neste dia.</p>
+              ) : (
+                <div className="space-y-2">
+                  {getEventsForSelectedDate().map((event) => (
+                    <div key={event.id} className="flex items-center space-x-2 text-sm">
+                      <span>{event.icon}</span>
+                      <span className="font-medium">{event.title}</span>
+                      <span className="text-gray-500">{event.time}</span>
+                      {event.isVaccination && (
+                        <Badge variant="secondary" className="text-xs">Vacinação</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
 
         {/* Lista de Eventos */}
@@ -312,11 +374,13 @@ const Agenda = () => {
               </div>
             ) : (
               allEvents.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={event.id} className={`flex items-center justify-between p-3 rounded-lg ${event.completed ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                   <div className="flex items-center space-x-3">
                     <span className="text-xl">{event.icon}</span>
                     <div>
-                      <h4 className="font-medium text-gray-800">{event.title}</h4>
+                      <h4 className={`font-medium ${event.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                        {event.title}
+                      </h4>
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
                         <span className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
@@ -335,25 +399,35 @@ const Agenda = () => {
                       )}
                     </div>
                   </div>
-                  {!event.isVaccination && (
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenDialog(event)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(event)}
-                        className="text-red-500 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    {!event.isVaccination && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleEventCompleted(event)}
+                          className={event.completed ? "text-green-600" : "text-gray-400"}
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDialog(event)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(event)}
+                          className="text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))
             )}

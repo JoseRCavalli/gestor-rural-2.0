@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Plus, Edit2, Trash2, AlertTriangle, Search } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, AlertTriangle, Search, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useStock } from '@/hooks/useStock';
 import StockImporter from '@/components/StockImporter';
 import StockAlerts from '@/components/StockAlerts';
+import StockControl from '@/components/StockControl';
 
 const Estoque = () => {
   const { stockItems, createStockItem, updateStockItem, deleteStockItem, loading } = useStock();
@@ -243,39 +245,51 @@ const Estoque = () => {
               filteredItems.map(item => (
                 <motion.div
                   key={item.id}
-                  className="bg-gray-50 rounded-lg p-4 flex items-center justify-between"
+                  className="bg-gray-50 rounded-lg p-4"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div>
-                    <h3 className="font-medium text-gray-800">{item.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {item.quantity} {item.unit}
-                    </p>
-                    <p className="text-sm text-gray-600">Categoria: {item.category}</p>
-                    {item.quantity <= item.min_stock && (
-                      <div className="flex items-center text-red-500 text-xs mt-1">
-                        <AlertTriangle className="w-4 h-4 mr-1" />
-                        Estoque abaixo do mínimo!
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-800">{item.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {item.quantity} {item.unit}
+                      </p>
+                      <p className="text-sm text-gray-600">Categoria: {item.category}</p>
+                      {item.quantity <= item.min_stock && (
+                        <div className="flex items-center text-red-500 text-xs mt-1">
+                          <AlertTriangle className="w-4 h-4 mr-1" />
+                          Estoque abaixo do mínimo!
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDialog(item)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(item.id)}
+                          className="text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                    )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpenDialog(item)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(item.id)}
-                      className="text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  
+                  {/* Controles de ajuste rápido */}
+                  <div className="border-t pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Controle Rápido:</span>
+                      <StockControl item={item} />
+                    </div>
                   </div>
                 </motion.div>
               ))
