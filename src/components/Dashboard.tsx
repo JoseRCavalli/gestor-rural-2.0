@@ -1,4 +1,3 @@
-
 import { motion } from 'framer-motion';
 import { Calendar, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,8 +17,8 @@ const Dashboard = () => {
   
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return { greeting: 'Bom dia', emoji: '👋' };
-    if (hour < 18) return { greeting: 'Boa tarde', emoji: '👋' };
+    if (hour >= 4 && hour < 12.5) return { greeting: 'Bom dia', emoji: '👋' };
+    if (hour >= 12.5 && hour < 18.5) return { greeting: 'Boa tarde', emoji: '👋' };
     return { greeting: 'Boa noite', emoji: '😴' };
   };
 

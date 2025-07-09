@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      animals: {
+        Row: {
+          birth_date: string
+          created_at: string
+          id: string
+          name: string | null
+          phase: string
+          tag: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          phase: string
+          tag: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string
+          created_at?: string
+          id?: string
+          name?: string | null
+          phase?: string
+          tag?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -224,6 +257,99 @@ export type Database = {
           unit?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vaccinations: {
+        Row: {
+          animal_id: string
+          application_date: string
+          batch_number: string | null
+          created_at: string
+          id: string
+          manufacturer: string | null
+          next_dose_date: string | null
+          notes: string | null
+          responsible: string | null
+          updated_at: string
+          user_id: string
+          vaccine_type_id: string
+        }
+        Insert: {
+          animal_id: string
+          application_date: string
+          batch_number?: string | null
+          created_at?: string
+          id?: string
+          manufacturer?: string | null
+          next_dose_date?: string | null
+          notes?: string | null
+          responsible?: string | null
+          updated_at?: string
+          user_id: string
+          vaccine_type_id: string
+        }
+        Update: {
+          animal_id?: string
+          application_date?: string
+          batch_number?: string | null
+          created_at?: string
+          id?: string
+          manufacturer?: string | null
+          next_dose_date?: string | null
+          notes?: string | null
+          responsible?: string | null
+          updated_at?: string
+          user_id?: string
+          vaccine_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccinations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vaccinations_vaccine_type_id_fkey"
+            columns: ["vaccine_type_id"]
+            isOneToOne: false
+            referencedRelation: "vaccine_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vaccine_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          interval_months: number | null
+          max_age_months: number | null
+          min_age_months: number | null
+          name: string
+          phases: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          interval_months?: number | null
+          max_age_months?: number | null
+          min_age_months?: number | null
+          name: string
+          phases?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          interval_months?: number | null
+          max_age_months?: number | null
+          min_age_months?: number | null
+          name?: string
+          phases?: string[] | null
         }
         Relationships: []
       }
