@@ -11,7 +11,8 @@ import {
   Thermometer,
   Droplets,
   Clock,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -74,7 +75,7 @@ const Dashboard = () => {
     vaca_seca: animals.filter(a => a.phase === 'vaca_seca').length,
   };
 
-  // Eventos próximos (próximos 7 dias)
+  // Eventos próximos (próximos 7 dias) - Integração completa com agenda
   const upcomingEvents = events.filter(event => {
     const eventDate = new Date(event.date);
     const todayDate = new Date(today);
@@ -82,6 +83,30 @@ const Dashboard = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 0 && diffDays <= 7 && !event.completed;
   });
+
+  // Adicionar eventos de vacinação próximas à agenda
+  const upcomingVaccinations = vaccinations
+    .filter(vacc => vacc.next_dose_date)
+    .filter(vacc => {
+      const vaccDate = new Date(vacc.next_dose_date!);
+      const todayDate = new Date(today);
+      const diffTime = vaccDate.getTime() - todayDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 7;
+    })
+    .map(vacc => {
+      const animal = animals.find(a => a.id === vacc.animal_id);
+      return {
+        id: `vacc-${vacc.id}`,
+        title: `Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
+        date: vacc.next_dose_date!,
+        icon: '💉',
+        type: 'vacina'
+      };
+    });
+
+  const allUpcomingEvents = [...upcomingEvents, ...upcomingVaccinations]
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   // Vacinações em atraso
   const overdueVaccinations = vaccinations.filter(vaccination => {
@@ -100,6 +125,29 @@ const Dashboard = () => {
   // Alertas de estoque baixo
   const lowStockItems = stockItems.filter(item => item.quantity <= item.min_stock);
 
+  // Todos os alertas do sistema
+  const allAlerts = [
+    ...overdueVaccinations.map(vacc => {
+      const animal = animals.find(a => a.id === vacc.animal_id);
+      return {
+        id: `vacc-${vacc.id}`,
+        type: 'vaccination',
+        level: 'critical',
+        title: `Vacinação atrasada - ${animal?.name || `Brinco ${animal?.tag}`}`,
+        message: `Vacina venceu em ${new Date(vacc.next_dose_date!).toLocaleDateString('pt-BR')}`,
+        icon: '⚠️'
+      };
+    }),
+    ...lowStockItems.map(item => ({
+      id: `stock-${item.id}`,
+      type: 'stock',
+      level: item.quantity === 0 ? 'critical' : 'warning',
+      title: `Estoque baixo - ${item.name}`,
+      message: `${item.quantity} ${item.unit} restante(s)`,
+      icon: item.quantity === 0 ? '🚨' : '⚠️'
+    }))
+  ];
+
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
       {/* Header com saudação */}
@@ -112,7 +160,7 @@ const Dashboard = () => {
 
       {/* LINHA 1 - Prioridade Alta */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total de Animais */}
+        {/* Total de Animais com Detalhamento do Rebanho */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -120,12 +168,29 @@ const Dashboard = () => {
         >
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Total de Animais</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">Rebanho Cadastrado</CardTitle>
               <Users className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{animalStats.total}</div>
-              <p className="text-xs text-gray-500 mt-1">Rebanho cadastrado</p>
+              <div className="text-3xl font-bold text-gray-900 mb-2">{animalStats.total}</div>
+              <div className="space-y-1 text-xs text-gray-600">
+                <div className="flex justify-between">
+                  <span>🐄 Vacas Lactantes:</span>
+                  <span className="font-medium">{animalStats.vaca_lactante}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>🐮 Vacas Secas:</span>
+                  <span className="font-medium">{animalStats.vaca_seca}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>🐂 Novilhas:</span>
+                  <span className="font-medium">{animalStats.novilha}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>🐃 Bezerras:</span>
+                  <span className="font-medium">{animalStats.bezerra}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -152,7 +217,7 @@ const Dashboard = () => {
           </Card>
         </motion.div>
 
-        {/* Próximos Eventos */}
+        {/* Próximos Eventos - Integrado */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -164,8 +229,18 @@ const Dashboard = () => {
               <Calendar className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{upcomingEvents.length}</div>
+              <div className="text-3xl font-bold text-gray-900">{allUpcomingEvents.length}</div>
               <p className="text-xs text-gray-500 mt-1">Próximos 7 dias</p>
+              {allUpcomingEvents.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {allUpcomingEvents.slice(0, 2).map((event) => (
+                    <div key={event.id} className="flex items-center text-xs text-gray-600">
+                      <span className="mr-1">{event.icon}</span>
+                      <span className="truncate">{event.title}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -208,14 +283,14 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
-      {/* LINHA 2 - Commodities */}
+      {/* LINHA 2 - Commodities (Reduzida) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
         <Card className="bg-white shadow-md">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-2 text-gray-800">
               <TrendingUp className="w-5 h-5 text-green-600" />
               <span>Commodities Hoje</span>
@@ -223,24 +298,24 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             {commoditiesLoading ? (
-              <div className="flex items-center justify-center py-6">
+              <div className="flex items-center justify-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
                 <span className="ml-2 text-sm text-gray-600">Atualizando preços...</span>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {commodities.slice(0, 5).map((commodity, index) => (
-                  <div key={index} className="text-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="text-2xl mb-2">{commodity.icon}</div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">{commodity.name}</div>
-                    <div className="text-lg font-bold text-gray-900">
+                  <div key={index} className="text-center p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="text-lg mb-1">{commodity.icon}</div>
+                    <div className="text-xs font-medium text-gray-700 mb-1">{commodity.name}</div>
+                    <div className="text-sm font-bold text-gray-900">
                       R$ {commodity.price.toFixed(2)}
                     </div>
                     <div className={`text-xs flex items-center justify-center space-x-1 mt-1 ${
                       commodity.change >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
                       <span>{commodity.change >= 0 ? '📈' : '📉'}</span>
-                      <span>{Math.abs(commodity.change).toFixed(2)}%</span>
+                      <span>{Math.abs(commodity.change).toFixed(1)}%</span>
                     </div>
                   </div>
                 ))}
@@ -250,13 +325,70 @@ const Dashboard = () => {
         </Card>
       </motion.div>
 
-      {/* LINHA 3 - Informações Adicionais */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* LINHA 3 - Alertas do Sistema */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Card className="bg-white shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-gray-800">
+              <Bell className="w-5 h-5 text-orange-600" />
+              <span>Alertas do Sistema</span>
+              {allAlerts.length > 0 && (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  {allAlerts.length}
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {allAlerts.length === 0 ? (
+              <div className="text-center py-6">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                <p className="text-green-600 font-medium">Tudo em ordem!</p>
+                <p className="text-sm text-gray-500">Nenhum alerta no momento</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {allAlerts.map((alert) => (
+                  <div 
+                    key={alert.id} 
+                    className={`p-3 rounded-lg border ${
+                      alert.level === 'critical' 
+                        ? 'bg-red-50 border-red-200' 
+                        : 'bg-yellow-50 border-yellow-200'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <span className="text-lg">{alert.icon}</span>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{alert.title}</h4>
+                        <p className="text-sm text-gray-600">{alert.message}</p>
+                      </div>
+                      <Badge 
+                        variant={alert.level === 'critical' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {alert.level === 'critical' ? 'Crítico' : 'Atenção'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* LINHA 4 - Informações Adicionais */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Vacinas Aplicadas Recentemente */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.7 }}
         >
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -273,37 +405,6 @@ const Dashboard = () => {
           </Card>
         </motion.div>
 
-        {/* Status do Estoque */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-        >
-          <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-gray-800">
-                <Package className={`w-5 h-5 ${lowStockItems.length > 0 ? 'text-red-500' : 'text-green-500'}`} />
-                <span className="text-sm">Status do Estoque</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {lowStockItems.length === 0 ? (
-                <div>
-                  <div className="text-2xl font-bold text-green-600 mb-2">✓</div>
-                  <p className="text-sm text-green-600 font-medium">Estoque em dia</p>
-                  <p className="text-xs text-gray-500">Todos os itens em níveis adequados</p>
-                </div>
-              ) : (
-                <div>
-                  <div className="text-2xl font-bold text-red-600 mb-2">{lowStockItems.length}</div>
-                  <p className="text-sm text-red-600 font-medium">Itens com estoque baixo</p>
-                  <p className="text-xs text-gray-500">Necessitam reposição</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
         {/* Próximos Eventos Detalhados */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -314,19 +415,19 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-gray-800">
                 <Clock className="w-5 h-5 text-blue-600" />
-                <span className="text-sm">Agenda</span>
+                <span className="text-sm">Agenda Integrada</span>
               </CardTitle>
-              <CardDescription>Próximos eventos</CardDescription>
+              <CardDescription>Eventos e vacinações próximas</CardDescription>
             </CardHeader>
             <CardContent>
-              {upcomingEvents.length === 0 ? (
+              {allUpcomingEvents.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-500">Nenhum evento próximo</p>
                   <p className="text-xs text-gray-400">Agenda em dia!</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {upcomingEvents.slice(0, 3).map((event) => (
+                  {allUpcomingEvents.slice(0, 4).map((event) => (
                     <div key={event.id} className="flex items-center space-x-2 p-2 rounded bg-gray-50">
                       <span className="text-sm">{event.icon}</span>
                       <div className="flex-1 min-w-0">
@@ -337,9 +438,9 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
-                  {upcomingEvents.length > 3 && (
+                  {allUpcomingEvents.length > 4 && (
                     <p className="text-xs text-gray-500 text-center">
-                      +{upcomingEvents.length - 3} eventos
+                      +{allUpcomingEvents.length - 4} eventos
                     </p>
                   )}
                 </div>
@@ -348,61 +449,6 @@ const Dashboard = () => {
           </Card>
         </motion.div>
       </div>
-
-      {/* Alertas de Estoque */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-      >
-        <StockAlerts />
-      </motion.div>
-
-      {/* Alerta de Vacinações em Atraso */}
-      {overdueVaccinations.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.0 }}
-        >
-          <Card className="border-red-200 bg-red-50 shadow-md">
-            <CardHeader>
-              <CardTitle className="text-red-800 flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5" />
-                <span>Vacinações em Atraso - Ação Necessária</span>
-              </CardTitle>
-              <CardDescription className="text-red-600">
-                {overdueVaccinations.length} vacinações precisam de atenção imediata
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {overdueVaccinations.slice(0, 3).map((vaccination) => {
-                  const animal = animals.find(a => a.id === vaccination.animal_id);
-                  const daysOverdue = Math.abs(Math.ceil((new Date(today).getTime() - new Date(vaccination.next_dose_date!).getTime()) / (1000 * 60 * 60 * 24)));
-                  
-                  return (
-                    <div key={vaccination.id} className="flex items-center justify-between p-3 bg-white rounded border border-red-200">
-                      <div>
-                        <p className="font-medium text-sm text-gray-900">{animal?.name || `Brinco ${animal?.tag}`}</p>
-                        <p className="text-xs text-gray-600">Venceu em: {new Date(vaccination.next_dose_date!).toLocaleDateString('pt-BR')}</p>
-                      </div>
-                      <Badge variant="destructive" className="text-xs">
-                        {daysOverdue} dias
-                      </Badge>
-                    </div>
-                  );
-                })}
-                {overdueVaccinations.length > 3 && (
-                  <p className="text-sm text-red-600 text-center mt-2">
-                    ... e mais {overdueVaccinations.length - 3} vacinações em atraso
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
     </div>
   );
 };
