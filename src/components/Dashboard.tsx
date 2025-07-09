@@ -8,20 +8,14 @@ import {
   TrendingUp, 
   AlertTriangle, 
   CheckCircle,
-  Plus,
-  Upload,
-  FileText
+  Plus
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useEvents } from '@/hooks/useEvents';
 import { useVaccinations } from '@/hooks/useVaccinations';
-import ImportAnimals from './ImportAnimals';
-import ImportVaccinations from './ImportVaccinations';
 
 const Dashboard = () => {
   const { animals } = useAnimals();
@@ -58,36 +52,6 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">🏡 Dashboard Rural</h1>
-        <div className="flex items-center space-x-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Upload className="w-4 h-4" />
-                <span>Importar Dados</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Importar Dados</DialogTitle>
-                <DialogDescription>
-                  Importe animais e vacinações em lote usando arquivos CSV ou Excel
-                </DialogDescription>
-              </DialogHeader>
-              <Tabs defaultValue="animals" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="animals">Animais</TabsTrigger>
-                  <TabsTrigger value="vaccinations">Vacinações</TabsTrigger>
-                </TabsList>
-                <TabsContent value="animals">
-                  <ImportAnimals />
-                </TabsContent>
-                <TabsContent value="vaccinations">
-                  <ImportVaccinations />
-                </TabsContent>
-              </Tabs>
-            </DialogContent>
-          </Dialog>
-        </div>
       </div>
 
       {/* Cards de Estatísticas Principais */}

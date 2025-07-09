@@ -10,7 +10,6 @@ import {
   BarChart3, 
   Settings,
   Bell,
-  FileText,
   LogOut,
   Syringe
 } from 'lucide-react';
@@ -21,7 +20,6 @@ import Commodities from '@/components/Commodities';
 import Relatorios from '@/components/Relatorios';
 import Configuracoes from '@/components/Configuracoes';
 import NotificationCenter from '@/components/NotificationCenter';
-import ReportsManager from '@/components/ReportsManager';
 import AgendaVacinal from '@/components/AgendaVacinal';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
@@ -76,7 +74,7 @@ const Index = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-9 w-full mb-8 bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid grid-cols-8 w-full mb-8 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <Home className="w-4 h-4" />
               <span className="hidden md:inline">Dashboard</span>
@@ -110,10 +108,6 @@ const Index = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="reportmanager" className="flex items-center space-x-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden md:inline">Relatórios+</span>
-            </TabsTrigger>
             <TabsTrigger value="configuracoes" className="flex items-center space-x-2">
               <Settings className="w-4 h-4" />
               <span className="hidden md:inline">Config</span>
@@ -146,10 +140,6 @@ const Index = () => {
 
           <TabsContent value="notifications">
             <NotificationCenter />
-          </TabsContent>
-
-          <TabsContent value="reportmanager">
-            <ReportsManager />
           </TabsContent>
 
           <TabsContent value="configuracoes">
