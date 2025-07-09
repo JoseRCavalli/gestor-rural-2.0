@@ -8,7 +8,12 @@ import {
   TrendingUp, 
   AlertTriangle, 
   CheckCircle,
-  Plus
+  Plus,
+  Cloud,
+  Sun,
+  CloudRain,
+  Thermometer,
+  Droplets
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,13 +21,26 @@ import { Badge } from '@/components/ui/badge';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useEvents } from '@/hooks/useEvents';
 import { useVaccinations } from '@/hooks/useVaccinations';
+import { useWeather } from '@/hooks/useWeather';
+import { useCommodities } from '@/hooks/useCommodities';
+import StockAlerts from './StockAlerts';
 
 const Dashboard = () => {
   const { animals } = useAnimals();
   const { events } = useEvents();
   const { vaccinations } = useVaccinations();
+  const { weather, loading: weatherLoading } = useWeather();
+  const { commodities, loading: commoditiesLoading } = useCommodities();
 
   const today = new Date().toISOString().split('T')[0];
+  const currentHour = new Date().getHours();
+
+  // Saudação baseada no horário
+  const getGreeting = () => {
+    if (currentHour < 12) return "🌅 Bom dia";
+    if (currentHour < 18) return "☀️ Boa tarde";
+    return "🌙 Boa noite";
+  };
 
   // Estatísticas dos animais por fase
   const animalStats = {
@@ -51,7 +69,99 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">🏡 Dashboard Rural</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">🏡 Dashboard Rural</h1>
+          <p className="text-gray-600 mt-1">{getGreeting()}! Vamos começar o dia produtivo.</p>
+        </div>
+      </div>
+
+      {/* Clima e Informações Gerais */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Card do Clima */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0 }}
+        >
+          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center space-x-2">
+                {weatherLoading ? (
+                  <Sun className="w-5 h-5 text-yellow-500" />
+                ) : (
+                  <span className="text-2xl">{weather?.icon || '☀️'}</span>
+                )}
+                <span>Clima Atual</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {weatherLoading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="text-sm text-gray-600">Carregando...</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Thermometer className="w-4 h-4 text-red-500" />
+                      <span className="text-2xl font-bold">{weather?.temperature}°C</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Droplets className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm">{weather?.humidity}%</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 capitalize">{weather?.description}</p>
+                  <p className="text-xs text-gray-500">{weather?.location}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Commodities */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="lg:col-span-2"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                <span>Commodities Hoje</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {commoditiesLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                  <span className="ml-2 text-sm text-gray-600">Atualizando preços...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {commodities.slice(0, 5).map((commodity, index) => (
+                    <div key={index} className="text-center p-2 rounded-lg bg-gray-50">
+                      <div className="text-2xl mb-1">{commodity.icon}</div>
+                      <div className="text-sm font-medium text-gray-700">{commodity.name}</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        R$ {commodity.price.toFixed(2)}
+                      </div>
+                      <div className={`text-xs flex items-center justify-center space-x-1 ${
+                        commodity.change >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        <span>{commodity.change >= 0 ? '↗' : '↘'}</span>
+                        <span>{Math.abs(commodity.change).toFixed(2)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Cards de Estatísticas Principais */}
@@ -59,7 +169,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
+          transition={{ delay: 0.2 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -78,7 +188,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.3 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -97,7 +207,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.4 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -116,7 +226,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.5 }}
         >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -138,7 +248,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.6 }}
         >
           <Card>
             <CardHeader>
@@ -197,7 +307,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.7 }}
         >
           <Card>
             <CardHeader>
@@ -234,12 +344,21 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
+      {/* Alertas de Estoque */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <StockAlerts />
+      </motion.div>
+
       {/* Alertas e Notificações */}
       {overdueVaccinations.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.9 }}
         >
           <Card className="border-red-200 bg-red-50">
             <CardHeader>
