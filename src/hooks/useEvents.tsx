@@ -6,13 +6,14 @@ import { toast } from 'sonner';
 
 export interface Event {
   id: string;
+  user_id: string;
   title: string;
   description?: string;
   date: string;
   time: string;
-  type: string;
-  icon: string;
-  user_id: string;
+  type?: string;
+  icon?: string;
+  completed?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +27,7 @@ export const useEvents = () => {
     if (!user) return;
     
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -34,12 +36,14 @@ export const useEvents = () => {
 
       if (error) {
         console.error('Error fetching events:', error);
+        toast.error('Erro ao carregar eventos');
         return;
       }
 
       setEvents(data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
+      toast.error('Erro ao carregar eventos');
     } finally {
       setLoading(false);
     }
@@ -51,16 +55,13 @@ export const useEvents = () => {
     try {
       const { data, error } = await supabase
         .from('events')
-        .insert([{
-          ...eventData,
-          user_id: user.id
-        }])
+        .insert([{ ...eventData, user_id: user.id }])
         .select()
         .single();
 
       if (error) {
         console.error('Error creating event:', error);
-        toast.error('Erro ao criar evento');
+        toast.error('Erro ao criar evento: ' + error.message);
         return;
       }
 
@@ -105,15 +106,15 @@ export const useEvents = () => {
 
       if (error) {
         console.error('Error deleting event:', error);
-        toast.error('Erro ao deletar evento');
+        toast.error('Erro ao excluir evento');
         return;
       }
 
       setEvents(prev => prev.filter(event => event.id !== id));
-      toast.success('Evento deletado com sucesso!');
+      toast.success('Evento excluído com sucesso!');
     } catch (error) {
       console.error('Error deleting event:', error);
-      toast.error('Erro ao deletar evento');
+      toast.error('Erro ao excluir evento');
     }
   };
 

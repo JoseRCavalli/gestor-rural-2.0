@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Calendar, Clock, MapPin, User, Edit2, Trash2, Filter, Check, X } from 'lucide-react';
@@ -10,20 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useEvents } from '@/hooks/useEvents';
+import { useEvents, Event } from '@/hooks/useEvents';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
 
-interface ExtendedEvent {
-  id: string;
-  title: string;
-  description?: string;
-  date: string;
-  time: string;
-  type: string;
-  icon: string;
+interface ExtendedEvent extends Event {
   isVaccination?: boolean;
-  completed?: boolean;
 }
 
 const Agenda = () => {
@@ -57,6 +48,7 @@ const Agenda = () => {
       const animal = animals.find(a => a.id === vacc.animal_id);
       return {
         id: `vacc-${vacc.id}`,
+        user_id: vacc.user_id,
         title: `Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
         description: `Próxima dose de vacina`,
         date: vacc.next_dose_date!,
@@ -64,7 +56,9 @@ const Agenda = () => {
         type: 'vacina',
         icon: '💉',
         isVaccination: true,
-        completed: false
+        completed: false,
+        created_at: '',
+        updated_at: ''
       };
     });
 

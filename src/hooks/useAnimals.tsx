@@ -37,7 +37,13 @@ export const useAnimals = () => {
         return;
       }
 
-      setAnimals(data || []);
+      // Type cast the data to ensure proper typing
+      const typedData = (data || []).map(animal => ({
+        ...animal,
+        phase: animal.phase as 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca'
+      }));
+
+      setAnimals(typedData);
     } catch (error) {
       console.error('Error fetching animals:', error);
       toast.error('Erro ao carregar animais');
@@ -62,9 +68,15 @@ export const useAnimals = () => {
         return;
       }
 
-      setAnimals(prev => [...prev, data]);
+      // Type cast the returned data
+      const typedData = {
+        ...data,
+        phase: data.phase as 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca'
+      };
+
+      setAnimals(prev => [...prev, typedData]);
       toast.success('Animal adicionado com sucesso!');
-      return data;
+      return typedData;
     } catch (error) {
       console.error('Error adding animal:', error);
       toast.error('Erro ao adicionar animal');
@@ -86,7 +98,13 @@ export const useAnimals = () => {
         return;
       }
 
-      setAnimals(prev => prev.map(animal => animal.id === id ? data : animal));
+      // Type cast the returned data
+      const typedData = {
+        ...data,
+        phase: data.phase as 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca'
+      };
+
+      setAnimals(prev => prev.map(animal => animal.id === id ? typedData : animal));
       toast.success('Animal atualizado com sucesso!');
     } catch (error) {
       console.error('Error updating animal:', error);
@@ -116,7 +134,7 @@ export const useAnimals = () => {
   };
 
   useEffect(() => {
-    fetchAnimals();
+    fetchEvents();
   }, [user]);
 
   return {
