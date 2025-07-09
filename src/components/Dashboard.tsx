@@ -1,355 +1,320 @@
 
-import { motion } from 'framer-motion';
-import { Calendar, Clock, TrendingUp, AlertTriangle, CloudRain, Syringe, Calendar as CalendarIcon } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useEvents } from '@/hooks/useEvents';
-import { useStock } from '@/hooks/useStock';
-import { useWeather } from '@/hooks/useWeather';
-import { useCommodities } from '@/hooks/useCommodities';
-import { useVaccinations } from '@/hooks/useVaccinations';
-import { useAnimals } from '@/hooks/useAnimals';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Calendar, 
+  Users, 
+  Package, 
+  TrendingUp, 
+  AlertTriangle, 
+  CheckCircle,
+  Plus,
+  Upload,
+  FileText
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAnimals } from '@/hooks/useAnimals';
+import { useEvents } from '@/hooks/useEvents';
+import { useVaccinations } from '@/hooks/useVaccinations';
+import ImportAnimals from './ImportAnimals';
+import ImportVaccinations from './ImportVaccinations';
 
 const Dashboard = () => {
-  const { profile } = useAuth();
-  const { events } = useEvents();
-  const { stockItems } = useStock();
-  const { weather, loading: weatherLoading } = useWeather();
-  const { commodities, loading: commoditiesLoading } = useCommodities();
-  const { vaccinations } = useVaccinations();
   const { animals } = useAnimals();
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 4 && hour < 12.5) return { greeting: 'Bom dia', emoji: '👋' };
-    if (hour >= 12.5 && hour < 18.5) return { greeting: 'Boa tarde', emoji: '👋' };
-    return { greeting: 'Boa noite', emoji: '😴' };
-  };
+  const { events } = useEvents();
+  const { vaccinations } = useVaccinations();
 
-  const getUserFirstName = () => {
-    const fullName = profile?.name || 'Usuário';
-    return fullName.split(' ')[0];
-  };
-
-  const getStockStatus = (quantity: number, minStock: number) => {
-    if (quantity <= minStock * 0.5) return 'Crítico';
-    if (quantity <= minStock) return 'Baixo';
-    return 'OK';
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'OK': return 'text-green-600 bg-green-100';
-      case 'Baixo': return 'text-yellow-600 bg-yellow-100';
-      case 'Crítico': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  // Get today's events
   const today = new Date().toISOString().split('T')[0];
-  const todayEvents = events.filter(event => event.date === today);
 
-  // Get next 3 days events
-  const nextDays = [];
-  for (let i = 0; i < 3; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    nextDays.push(date.toISOString().split('T')[0]);
-  }
-  const upcomingEvents = events.filter(event => nextDays.includes(event.date));
-
-  // Get vaccination alerts
-  const vaccinationAlerts = vaccinations
-    .filter(vacc => {
-      if (!vacc.next_dose_date) return false;
-      const nextDose = new Date(vacc.next_dose_date);
-      const today = new Date();
-      const diffDays = Math.ceil((nextDose.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return diffDays <= 7 && diffDays >= 0; // Próximos 7 dias
-    })
-    .map(vacc => {
-      const animal = animals.find(a => a.id === vacc.animal_id);
-      return {
-        message: `Vacinação de ${animal?.name || animal?.tag} vencendo em ${Math.ceil((new Date(vacc.next_dose_date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias`,
-        type: 'info',
-        icon: '💉'
-      };
-    });
-
-  // Get events for selected date
-  const selectedDateEvents = selectedDate 
-    ? events.filter(event => event.date === selectedDate)
-    : [];
-
-  // Generate alerts based on stock levels
-  const stockAlerts = stockItems
-    .filter(item => {
-      const status = getStockStatus(item.quantity, item.min_stock);
-      return status === 'Crítico' || status === 'Baixo';
-    })
-    .map(item => ({
-      message: `${item.name} em ${getStockStatus(item.quantity, item.min_stock).toLowerCase()} estoque`,
-      type: getStockStatus(item.quantity, item.min_stock) === 'Crítico' ? 'danger' : 'warning',
-      icon: getStockStatus(item.quantity, item.min_stock) === 'Crítico' ? '🚨' : '⚠️'
-    }));
-
-  // Weather alerts
-  const weatherAlerts = [];
-  if (weather && !weatherLoading) {
-    if (weather.temperature > 35) {
-      weatherAlerts.push({
-        message: `Temperatura alta (${weather.temperature}°C) - Cuidado com o gado`,
-        type: 'warning',
-        icon: '🌡️'
-      });
-    }
-    if (weather.temperature < 5) {
-      weatherAlerts.push({
-        message: `Temperatura baixa (${weather.temperature}°C) - Proteger animais`,
-        type: 'info',
-        icon: '🥶'
-      });
-    }
-    if (weather.description.includes('chuva') || weather.description.includes('rain')) {
-      weatherAlerts.push({
-        message: `Previsão de chuva - Verificar abrigos e bebedouros`,
-        type: 'info',
-        icon: '🌧️'
-      });
-    }
-  }
-
-  const alerts = [...stockAlerts, ...weatherAlerts, ...vaccinationAlerts];
-
-  const getAlertColor = (type: string) => {
-    switch (type) {
-      case 'warning': return 'border-yellow-200 bg-yellow-50';
-      case 'info': return 'border-blue-200 bg-blue-50';
-      case 'danger': return 'border-red-200 bg-red-50';
-      default: return 'border-gray-200 bg-gray-50';
-    }
+  // Estatísticas dos animais por fase
+  const animalStats = {
+    total: animals.length,
+    bezerra: animals.filter(a => a.phase === 'bezerra').length,
+    novilha: animals.filter(a => a.phase === 'novilha').length,
+    vaca_lactante: animals.filter(a => a.phase === 'vaca_lactante').length,
+    vaca_seca: animals.filter(a => a.phase === 'vaca_seca').length,
   };
 
-  const getDaysInMonth = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+  // Eventos próximos (próximos 7 dias)
+  const upcomingEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const todayDate = new Date(today);
+    const diffTime = eventDate.getTime() - todayDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 7 && !event.completed;
+  });
 
-    const days = [];
-    
-    // Add empty cells for days before month starts
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-    
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const hasEvents = events.some(event => event.date === dateStr);
-      days.push({ day, dateStr, hasEvents });
-    }
-    
-    return days;
-  };
-
-  const greetingInfo = getGreeting();
+  // Vacinações em atraso
+  const overdueVaccinations = vaccinations.filter(vaccination => {
+    if (!vaccination.next_dose_date) return false;
+    return vaccination.next_dose_date < today;
+  });
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 text-white"
-      >
-        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
-          {greetingInfo.greeting}, {getUserFirstName()}! {greetingInfo.emoji}
-        </h2>
-        <p className="text-green-100">Bem-vindo ao seu painel de gestão rural</p>
-      </motion.div>
-
-      {/* Weather Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-      >
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-          <CloudRain className="w-5 h-5 mr-2" />
-          Clima em Tempo Real
-        </h3>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            {weatherLoading ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">⏳</span>
-                <span className="text-gray-600">Carregando clima...</span>
-              </div>
-            ) : weather ? (
-              <>
-                <div className="flex items-center space-x-2">
-                  <span className="text-3xl">{weather.icon}</span>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-800">{weather.temperature}°C</p>
-                    <p className="text-sm text-gray-600">{weather.description}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">💨</span>
-                  <span className="text-gray-600">{weather.humidity}% umidade</span>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">❌</span>
-                <span className="text-gray-600">Clima indisponível</span>
-              </div>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-800">{weather?.location}</p>
-            <p className="text-xs text-gray-500">Atualizado agora</p>
-          </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-800">🏡 Dashboard Rural</h1>
+        <div className="flex items-center space-x-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center space-x-2">
+                <Upload className="w-4 h-4" />
+                <span>Importar Dados</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Importar Dados</DialogTitle>
+                <DialogDescription>
+                  Importe animais e vacinações em lote usando arquivos CSV ou Excel
+                </DialogDescription>
+              </DialogHeader>
+              <Tabs defaultValue="animals" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="animals">Animais</TabsTrigger>
+                  <TabsTrigger value="vaccinations">Vacinações</TabsTrigger>
+                </TabsList>
+                <TabsContent value="animals">
+                  <ImportAnimals />
+                </TabsContent>
+                <TabsContent value="vaccinations">
+                  <ImportVaccinations />
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
         </div>
-      </motion.div>
+      </div>
+
+      {/* Cards de Estatísticas Principais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0 }}
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Animais</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{animalStats.total}</div>
+              <p className="text-xs text-muted-foreground">
+                Rebanho cadastrado
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Eventos Próximos</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{upcomingEvents.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Próximos 7 dias
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Vacinações Atrasadas</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{overdueVaccinations.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Necessitam atenção
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Vacinações Aplicadas</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{vaccinations.length}</div>
+              <p className="text-xs text-muted-foreground">
+                Total registrado
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Stock Summary */}
-        <motion.div 
+        {/* Distribuição do Rebanho */}
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          transition={{ delay: 0.4 }}
         >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="text-xl mr-2">📦</span>
-            Resumo do Estoque
-          </h3>
-          <div className="space-y-3">
-            {stockItems.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nenhum item no estoque. Adicione itens na aba Estoque.</p>
-            ) : (
-              stockItems.slice(0, 4).map((item) => {
-                const status = getStockStatus(item.quantity, item.min_stock);
-                return (
-                  <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-800">{item.name}</p>
-                      <p className="text-sm text-gray-600">{item.quantity} {item.unit}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-                      {status}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Distribuição do Rebanho</CardTitle>
+              <CardDescription>Animais por fase de vida</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-pink-400 rounded-full"></div>
+                  <span className="text-sm">Bezerra</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">{animalStats.bezerra}</span>
+                  <Badge variant="secondary">{animalStats.total > 0 ? Math.round((animalStats.bezerra / animalStats.total) * 100) : 0}%</Badge>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                  <span className="text-sm">Novilha</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">{animalStats.novilha}</span>
+                  <Badge variant="secondary">{animalStats.total > 0 ? Math.round((animalStats.novilha / animalStats.total) * 100) : 0}%</Badge>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  <span className="text-sm">Vaca Lactante</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">{animalStats.vaca_lactante}</span>
+                  <Badge variant="secondary">{animalStats.total > 0 ? Math.round((animalStats.vaca_lactante / animalStats.total) * 100) : 0}%</Badge>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                  <span className="text-sm">Vaca Seca</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">{animalStats.vaca_seca}</span>
+                  <Badge variant="secondary">{animalStats.total > 0 ? Math.round((animalStats.vaca_seca / animalStats.total) * 100) : 0}%</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
-        {/* Próximos Compromissos */}
-        <motion.div 
+        {/* Próximos Eventos */}
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          transition={{ delay: 0.5 }}
         >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <CalendarIcon className="w-5 h-5 mr-2" />
-            Próximos Compromissos
-          </h3>
-          <div className="space-y-3">
-            {upcomingEvents.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nenhum compromisso nos próximos dias.</p>
-            ) : (
-              upcomingEvents.slice(0, 4).map((event) => (
-                <div key={event.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <span className="text-lg">{event.icon}</span>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-800">{event.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(event.date).toLocaleDateString('pt-BR')} às {event.time}
-                    </p>
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Próximos Eventos</CardTitle>
+              <CardDescription>Agenda dos próximos 7 dias</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {upcomingEvents.length === 0 ? (
+                <div className="text-center py-6">
+                  <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Nenhum evento próximo</p>
+                  <p className="text-sm text-gray-400">Você está em dia com a agenda!</p>
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingEvents.slice(0, 5).map((event) => (
+                    <div key={event.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
+                      <span className="text-lg">{event.icon}</span>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{event.title}</h4>
+                        <p className="text-xs text-gray-600">
+                          {new Date(event.date).toLocaleDateString('pt-BR')} às {event.time}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {event.type}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Commodities */}
-        <motion.div 
+      {/* Alertas e Notificações */}
+      {overdueVaccinations.length > 0 && (
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
+          transition={{ delay: 0.6 }}
         >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2" />
-            Preços de Commodities
-            {commoditiesLoading && <span className="text-xs text-gray-500 ml-2">(Atualizando...)</span>}
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {commodities.slice(0, 4).map((commodity, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-lg">{commodity.icon}</span>
-                  <p className="font-medium text-gray-800">{commodity.name}</p>
-                </div>
-                <p className="text-lg font-bold text-green-600">R$ {commodity.price.toFixed(2)}</p>
-                <p className="text-xs text-gray-600">{commodity.unit}</p>
-                <p className={`text-sm font-medium ${commodity.change < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {commodity.change > 0 ? '+' : ''}{commodity.change.toFixed(2)}%
-                </p>
-                {commodity.source && (
-                  <p className="text-xs text-gray-500 mt-1">{commodity.source}</p>
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5" />
+                <span>Vacinações em Atraso</span>
+              </CardTitle>
+              <CardDescription className="text-red-600">
+                {overdueVaccinations.length} vacinações precisam de atenção imediata
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {overdueVaccinations.slice(0, 3).map((vaccination) => {
+                  const animal = animals.find(a => a.id === vaccination.animal_id);
+                  const daysOverdue = Math.abs(Math.ceil((new Date(today).getTime() - new Date(vaccination.next_dose_date!).getTime()) / (1000 * 60 * 60 * 24)));
+                  
+                  return (
+                    <div key={vaccination.id} className="flex items-center justify-between p-2 bg-white rounded border border-red-200">
+                      <div>
+                        <p className="font-medium text-sm">{animal?.name || `Brinco ${animal?.tag}`}</p>
+                        <p className="text-xs text-gray-600">Próxima dose: {new Date(vaccination.next_dose_date!).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                      <Badge variant="destructive" className="text-xs">
+                        {daysOverdue} dias
+                      </Badge>
+                    </div>
+                  );
+                })}
+                {overdueVaccinations.length > 3 && (
+                  <p className="text-sm text-red-600 text-center">
+                    ... e mais {overdueVaccinations.length - 3} vacinações em atraso
+                  </p>
                 )}
               </div>
-            ))}
-          </div>
-          {commodities.length > 0 && (
-            <p className="text-xs text-gray-500 mt-2">
-              Última atualização: {new Date().toLocaleTimeString('pt-BR')}
-            </p>
-          )}
+            </CardContent>
+          </Card>
         </motion.div>
-
-        {/* Alerts */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-100"
-        >
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2" />
-            Alertas em Tempo Real
-          </h3>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {alerts.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nenhum alerta no momento.</p>
-            ) : (
-              alerts.map((alert, index) => (
-                <div key={index} className={`p-4 rounded-lg border-l-4 ${getAlertColor(alert.type)}`}>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">{alert.icon}</span>
-                    <p className="text-sm font-medium text-gray-800">{alert.message}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </motion.div>
-      </div>
+      )}
     </div>
   );
 };

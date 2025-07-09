@@ -49,6 +49,7 @@ export type Database = {
       }
       events: {
         Row: {
+          completed: boolean | null
           created_at: string
           date: string
           description: string | null
@@ -61,6 +62,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          completed?: boolean | null
           created_at?: string
           date: string
           description?: string | null
@@ -73,6 +75,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          completed?: boolean | null
           created_at?: string
           date?: string
           description?: string | null
@@ -82,6 +85,42 @@ export type Database = {
           title?: string
           type?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      import_logs: {
+        Row: {
+          created_at: string
+          errors: Json | null
+          file_name: string | null
+          id: string
+          import_type: string
+          records_failed: number | null
+          records_processed: number | null
+          records_success: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          errors?: Json | null
+          file_name?: string | null
+          id?: string
+          import_type: string
+          records_failed?: number | null
+          records_processed?: number | null
+          records_success?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          errors?: Json | null
+          file_name?: string | null
+          id?: string
+          import_type?: string
+          records_failed?: number | null
+          records_processed?: number | null
+          records_success?: number | null
           user_id?: string
         }
         Relationships: []

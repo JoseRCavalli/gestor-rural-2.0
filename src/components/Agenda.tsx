@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Clock, MapPin, User, Edit2, Trash2, Filter, Check, X } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, User, Edit2, Trash2, Filter, Check, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,26 +35,47 @@ const Agenda = () => {
     completed: false
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  // Obter data atual no formato correto (incluindo hora para comparação mais precisa)
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const currentTime = now.getHours() * 60 + now.getMinutes(); // minutos desde meia-noite
   
-  // Filtrar eventos passados e futuros
-  const futureEvents = events.filter(event => event.date >= today);
-  const pastEvents = events.filter(event => event.date < today);
+  // Filtrar eventos considerando data E hora
+  const futureEvents = events.filter(event => {
+    if (event.date > today) return true;
+    if (event.date === today) {
+      const eventTime = event.time.split(':');
+      const eventMinutes = parseInt(eventTime[0]) * 60 + parseInt(eventTime[1]);
+      return eventMinutes > currentTime;
+    }
+    return false;
+  });
   
-  // Gerar eventos de vacinação pendentes
+  const pastEvents = events.filter(event => {
+    if (event.date < today) return true;
+    if (event.date === today) {
+      const eventTime = event.time.split(':');
+      const eventMinutes = parseInt(eventTime[0]) * 60 + parseInt(eventTime[1]);
+      return eventMinutes <= currentTime;
+    }
+    return false;
+  });
+  
+  // Gerar eventos de vacinação pendentes (incluindo futuras e vencidas)
   const vaccinationEvents: ExtendedEvent[] = vaccinations
-    .filter(vacc => vacc.next_dose_date && vacc.next_dose_date >= today)
+    .filter(vacc => vacc.next_dose_date)
     .map(vacc => {
       const animal = animals.find(a => a.id === vacc.animal_id);
+      const isOverdue = vacc.next_dose_date! < today;
       return {
         id: `vacc-${vacc.id}`,
         user_id: vacc.user_id,
-        title: `Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
-        description: `Próxima dose de vacina`,
+        title: `${isOverdue ? '⚠️ ATRASADA - ' : ''}Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
+        description: `Próxima dose de vacina${isOverdue ? ' (VENCIDA)' : ''}`,
         date: vacc.next_dose_date!,
         time: '08:00',
         type: 'vacina',
-        icon: '💉',
+        icon: isOverdue ? '⚠️' : '💉',
         isVaccination: true,
         completed: false,
         created_at: '',
@@ -66,7 +87,13 @@ const Agenda = () => {
   const allEvents: ExtendedEvent[] = showPastEvents 
     ? displayEvents.map(e => ({ ...e, isVaccination: false }))
     : [...displayEvents.map(e => ({ ...e, isVaccination: false })), ...vaccinationEvents]
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => {
+        const dateCompare = a.date.localeCompare(b.date);
+        if (dateCompare === 0) {
+          return a.time.localeCompare(b.time);
+        }
+        return dateCompare;
+      });
 
   const typeIcons = {
     'tarefa': '📋',
@@ -357,6 +384,11 @@ const Agenda = () => {
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
             <Clock className="w-5 h-5 mr-2" />
             {showPastEvents ? 'Eventos Passados' : 'Próximos Eventos'}
+            {!showPastEvents && vaccinationEvents.filter(v => v.date < today).length > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {vaccinationEvents.filter(v => v.date < today).length} Atrasadas
+              </Badge>
+            )}
           </h3>
           
           <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -367,63 +399,74 @@ const Agenda = () => {
                 {showPastEvents ? 'Nenhum evento passado encontrado.' : 'Nenhum evento futuro encontrado.'}
               </div>
             ) : (
-              allEvents.map((event) => (
-                <div key={event.id} className={`flex items-center justify-between p-3 rounded-lg ${event.completed ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                  <div className="flex items-center space-x-3">
-                    <span className="text-xl">{event.icon}</span>
-                    <div>
-                      <h4 className={`font-medium ${event.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                        {event.title}
-                      </h4>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(event.date).toLocaleDateString('pt-BR')}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {event.time}
-                        </span>
+              allEvents.map((event) => {
+                const isOverdue = event.isVaccination && event.date < today;
+                return (
+                  <div key={event.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                    event.completed ? 'bg-green-50 border border-green-200' : 
+                    isOverdue ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
+                  }`}>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xl">{event.icon}</span>
+                      <div>
+                        <h4 className={`font-medium ${event.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                          {event.title}
+                        </h4>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {new Date(event.date).toLocaleDateString('pt-BR')}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {event.time}
+                          </span>
+                        </div>
+                        {event.description && (
+                          <p className="text-xs text-gray-500 mt-1">{event.description}</p>
+                        )}
+                        <div className="flex items-center space-x-2 mt-1">
+                          {event.isVaccination && (
+                            <Badge variant="secondary">Vacinação</Badge>
+                          )}
+                          {isOverdue && (
+                            <Badge variant="destructive">ATRASADA</Badge>
+                          )}
+                        </div>
                       </div>
-                      {event.description && (
-                        <p className="text-xs text-gray-500 mt-1">{event.description}</p>
-                      )}
-                      {event.isVaccination && (
-                        <Badge variant="secondary" className="mt-1">Vacinação</Badge>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {!event.isVaccination && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleEventCompleted(event)}
+                            className={event.completed ? "text-green-600" : "text-gray-400"}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDialog(event)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(event)}
+                            className="text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {!event.isVaccination && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleEventCompleted(event)}
-                          className={event.completed ? "text-green-600" : "text-gray-400"}
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(event)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(event)}
-                          className="text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </motion.div>
