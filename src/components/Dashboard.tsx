@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -50,6 +49,20 @@ const Dashboard = () => {
     return "🌙 Boa noite";
   };
 
+  // Mensagem personalizada baseada no horário
+  const getGreetingMessage = () => {
+    // Bom dia: 4:00 até 12:30
+    if (currentHour >= 4 && (currentHour < 12 || (currentHour === 12 && currentMinutes <= 30))) {
+      return "Vamos começar o dia produtivo.";
+    }
+    // Boa tarde: 13:00 até 18:30
+    if (currentHour >= 13 && (currentHour < 18 || (currentHour === 18 && currentMinutes <= 30))) {
+      return "Vamos seguir com foco.";
+    }
+    // Boa noite: das 18:30 em diante ou antes das 4:00
+    return "Tenha um bom descanso.";
+  };
+
   // Estatísticas dos animais por fase
   const animalStats = {
     total: animals.length,
@@ -79,7 +92,7 @@ const Dashboard = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">🏡 Dashboard Rural</h1>
-          <p className="text-gray-600 mt-1">{getGreeting()}! Vamos começar o dia produtivo.</p>
+          <p className="text-gray-600 mt-1">{getGreeting()}! {getGreetingMessage()}</p>
         </div>
       </div>
 

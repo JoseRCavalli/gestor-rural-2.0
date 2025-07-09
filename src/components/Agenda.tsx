@@ -353,7 +353,7 @@ const Agenda = () => {
           {selectedDate && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
               <h4 className="font-medium text-gray-800 mb-2">
-                Eventos para {new Date(selectedDate).toLocaleDateString('pt-BR')}:
+                Eventos para {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}:
               </h4>
               {getEventsForSelectedDate().length === 0 ? (
                 <p className="text-sm text-gray-500">Nenhum evento neste dia.</p>
