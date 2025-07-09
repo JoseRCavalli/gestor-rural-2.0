@@ -34,11 +34,19 @@ const Dashboard = () => {
 
   const today = new Date().toISOString().split('T')[0];
   const currentHour = new Date().getHours();
+  const currentMinutes = new Date().getMinutes();
 
-  // Saudação baseada no horário
+  // Saudação baseada no horário corrigida
   const getGreeting = () => {
-    if (currentHour < 12) return "🌅 Bom dia";
-    if (currentHour < 18) return "☀️ Boa tarde";
+    // Bom dia: 4:00 até 12:30
+    if (currentHour >= 4 && (currentHour < 12 || (currentHour === 12 && currentMinutes <= 30))) {
+      return "🌅 Bom dia";
+    }
+    // Boa tarde: 13:00 até 18:30
+    if (currentHour >= 13 && (currentHour < 18 || (currentHour === 18 && currentMinutes <= 30))) {
+      return "☀️ Boa tarde";
+    }
+    // Boa noite: das 18:30 em diante ou antes das 4:00
     return "🌙 Boa noite";
   };
 
