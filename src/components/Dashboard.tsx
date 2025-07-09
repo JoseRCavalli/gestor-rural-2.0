@@ -28,7 +28,7 @@ import StockAlerts from './StockAlerts';
 const Dashboard = () => {
   const { animals } = useAnimals();
   const { events } = useEvents();
-  const { vaccinations } = useVaccinations();
+  const { vaccinations, vaccineTypes } = useVaccinations();
   const { weather, loading: weatherLoading } = useWeather();
   const { commodities, loading: commoditiesLoading } = useCommodities();
   const { stockItems } = useStock();
@@ -77,8 +77,8 @@ const Dashboard = () => {
 
   // Eventos próximos (próximos 7 dias) - Integração completa com agenda
   const upcomingEvents = events.filter(event => {
-    const eventDate = new Date(event.date);
-    const todayDate = new Date(today);
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const todayDate = new Date(today + 'T00:00:00');
     const diffTime = eventDate.getTime() - todayDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 0 && diffDays <= 7 && !event.completed;
@@ -88,20 +88,22 @@ const Dashboard = () => {
   const upcomingVaccinations = vaccinations
     .filter(vacc => vacc.next_dose_date)
     .filter(vacc => {
-      const vaccDate = new Date(vacc.next_dose_date!);
-      const todayDate = new Date(today);
+      const vaccDate = new Date(vacc.next_dose_date! + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
       const diffTime = vaccDate.getTime() - todayDate.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays >= 0 && diffDays <= 7;
     })
     .map(vacc => {
       const animal = animals.find(a => a.id === vacc.animal_id);
+      const vaccineType = vaccineTypes.find(vt => vt.id === vacc.vaccine_type_id);
       return {
         id: `vacc-${vacc.id}`,
         title: `Vacinação - ${animal?.name || `Brinco ${animal?.tag}`}`,
         date: vacc.next_dose_date!,
         icon: '💉',
-        type: 'vacina'
+        type: 'vacina',
+        description: `Vacina: ${vaccineType?.name}`
       };
     });
 
@@ -129,12 +131,13 @@ const Dashboard = () => {
   const allAlerts = [
     ...overdueVaccinations.map(vacc => {
       const animal = animals.find(a => a.id === vacc.animal_id);
+      const vaccineType = vaccineTypes.find(vt => vt.id === vacc.vaccine_type_id);
       return {
         id: `vacc-${vacc.id}`,
         type: 'vaccination',
         level: 'critical',
         title: `Vacinação atrasada - ${animal?.name || `Brinco ${animal?.tag}`}`,
-        message: `Vacina venceu em ${new Date(vacc.next_dose_date!).toLocaleDateString('pt-BR')}`,
+        message: `${vaccineType?.name} - Venceu em ${new Date(vacc.next_dose_date!).toLocaleDateString('pt-BR')}`,
         icon: '⚠️'
       };
     }),
@@ -169,7 +172,7 @@ const Dashboard = () => {
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Rebanho Cadastrado</CardTitle>
-              <Users className="h-5 w-5 text-blue-600" />
+              <Users className="h-5 w-5 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900 mb-2">{animalStats.total}</div>
@@ -226,7 +229,7 @@ const Dashboard = () => {
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Próximos Eventos</CardTitle>
-              <Calendar className="h-5 w-5 text-blue-600" />
+              <Calendar className="h-5 w-5 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">{allUpcomingEvents.length}</div>
@@ -255,7 +258,7 @@ const Dashboard = () => {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Clima Atual</CardTitle>
               {weatherLoading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
               ) : (
                 <span className="text-xl">{weather?.icon || '☀️'}</span>
               )}
@@ -414,7 +417,7 @@ const Dashboard = () => {
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-gray-800">
-                <Clock className="w-5 h-5 text-blue-600" />
+                <Clock className="w-5 h-5 text-green-600" />
                 <span className="text-sm">Agenda Integrada</span>
               </CardTitle>
               <CardDescription>Eventos e vacinações próximas</CardDescription>
@@ -428,12 +431,12 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-2">
                   {allUpcomingEvents.slice(0, 4).map((event) => (
-                    <div key={event.id} className="flex items-center space-x-2 p-2 rounded bg-gray-50">
+                    <div key={event.id} className="flex items-center space-x-2 p-2 rounded bg-green-50">
                       <span className="text-sm">{event.icon}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{event.title}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(event.date).toLocaleDateString('pt-BR')}
+                          {new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                     </div>

@@ -28,8 +28,8 @@ const AgendaVacinal = () => {
     let daysUntilNext = 0;
     
     if (vaccination.next_dose_date) {
-      const nextDate = new Date(vaccination.next_dose_date);
-      const todayDate = new Date(today);
+      const nextDate = new Date(vaccination.next_dose_date + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
       daysUntilNext = Math.ceil((nextDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysUntilNext < 0) {
@@ -75,14 +75,14 @@ const AgendaVacinal = () => {
       case 'overdue':
         return <Badge variant="destructive">Atrasada ({Math.abs(daysUntilNext)} dias)</Badge>;
       case 'upcoming':
-        return <Badge variant="secondary">Próxima ({daysUntilNext} dias)</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">Próxima ({daysUntilNext} dias)</Badge>;
       default:
-        return <Badge variant="default">Aplicada</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-800">Aplicada</Badge>;
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
   };
 
   return (
@@ -125,8 +125,8 @@ const AgendaVacinal = () => {
                   <p className="text-sm font-medium text-gray-600">Total</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Calendar className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -163,10 +163,10 @@ const AgendaVacinal = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Próximas (30 dias)</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.upcoming}</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.upcoming}</p>
                 </div>
-                <div className="p-2 bg-yellow-100 rounded-full">
-                  <Clock className="w-5 h-5 text-yellow-600" />
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Clock className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -233,7 +233,7 @@ const AgendaVacinal = () => {
                       vaccination.status === 'overdue' 
                         ? 'border-red-200 bg-red-50' 
                         : vaccination.status === 'upcoming'
-                        ? 'border-yellow-200 bg-yellow-50'
+                        ? 'border-green-200 bg-green-50'
                         : 'border-gray-200 bg-white'
                     }`}
                   >

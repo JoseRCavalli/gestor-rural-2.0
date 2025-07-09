@@ -63,30 +63,44 @@ const Agenda = () => {
   };
 
   const formatDateForDisplay = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = new Date(dateString + 'T00:00:00');
     return date.toLocaleDateString('pt-BR');
   };
 
   // Get events for selected date
   const selectedDateEvents = allEvents.filter(event => {
     if (!selectedDate) return false;
-    const eventDate = new Date(event.date);
-    return eventDate.toDateString() === selectedDate.toDateString();
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const selectedDateNormalized = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    const eventDateNormalized = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+    return selectedDateNormalized.getTime() === eventDateNormalized.getTime();
   });
 
-  // Get upcoming events (next 7 days)
+  // Get upcoming events (next 7 days) - including today
   const today = new Date();
   const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
   
   const upcomingEvents = allEvents.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate >= today && eventDate <= nextWeek && !event.completed;
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const nextWeekNormalized = new Date(nextWeek.getFullYear(), nextWeek.getMonth(), nextWeek.getDate());
+    return eventDate >= todayNormalized && eventDate <= nextWeekNormalized && !event.completed;
   }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Past events (last 30 days)
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const pastEvents = allEvents.filter(event => {
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const thirtyDaysAgoNormalized = new Date(thirtyDaysAgo.getFullYear(), thirtyDaysAgo.getMonth(), thirtyDaysAgo.getDate());
+    return eventDate < todayNormalized && eventDate >= thirtyDaysAgoNormalized;
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Overdue events
   const overdueEvents = allEvents.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate < today && !event.completed;
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return eventDate < todayNormalized && !event.completed;
   });
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -147,7 +161,7 @@ const Agenda = () => {
   }, [selectedDate]);
 
   // Get dates that have events for calendar highlighting
-  const eventDates = allEvents.map(event => new Date(event.date));
+  const eventDates = allEvents.map(event => new Date(event.date + 'T00:00:00'));
 
   return (
     <div className="space-y-6">
@@ -155,7 +169,7 @@ const Agenda = () => {
         <h2 className="text-2xl font-bold text-gray-800">📅 Agenda Rural</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
+            <Button className="flex items-center space-x-2 bg-green-600 hover:bg-green-700">
               <Plus className="w-4 h-4" />
               <span>Novo Evento</span>
             </Button>
@@ -252,7 +266,9 @@ const Agenda = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Criar Evento</Button>
+                <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                  Criar Evento
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -260,7 +276,7 @@ const Agenda = () => {
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -271,10 +287,10 @@ const Agenda = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Próximos 7 dias</p>
-                  <p className="text-2xl font-bold text-blue-600">{upcomingEvents.length}</p>
+                  <p className="text-2xl font-bold text-green-600">{upcomingEvents.length}</p>
                 </div>
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <Clock className="w-5 h-5 text-blue-600" />
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Clock className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -310,6 +326,26 @@ const Agenda = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
+                  <p className="text-sm font-medium text-gray-600">Eventos Passados</p>
+                  <p className="text-2xl font-bold text-gray-600">{pastEvents.length}</p>
+                </div>
+                <div className="p-2 bg-gray-100 rounded-full">
+                  <CheckCircle className="w-5 h-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
                   <p className="text-sm font-medium text-gray-600">Total de Eventos</p>
                   <p className="text-2xl font-bold text-green-600">{allEvents.length}</p>
                 </div>
@@ -327,7 +363,7 @@ const Agenda = () => {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
         >
           <Card>
             <CardHeader>
@@ -345,8 +381,8 @@ const Agenda = () => {
                 }}
                 modifiersStyles={{
                   hasEvent: {
-                    backgroundColor: '#dbeafe',
-                    color: '#1e40af',
+                    backgroundColor: '#dcfce7',
+                    color: '#166534',
                     fontWeight: 'bold'
                   }
                 }}
@@ -359,14 +395,14 @@ const Agenda = () => {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
         >
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <CalendarIcon className="w-5 h-5" />
                 <span>
-                  {selectedDate ? formatDateForDisplay(selectedDate.toISOString()) : 'Selecione uma data'}
+                  {selectedDate ? formatDateForDisplay(selectedDate.toISOString().split('T')[0]) : 'Selecione uma data'}
                 </span>
               </CardTitle>
               <CardDescription>
@@ -431,12 +467,12 @@ const Agenda = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: 0.7 }}
       >
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-blue-600" />
+              <Clock className="w-5 h-5 text-green-600" />
               <span>Próximos Eventos</span>
             </CardTitle>
             <CardDescription>
@@ -455,7 +491,7 @@ const Agenda = () => {
                 {upcomingEvents.slice(0, 5).map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                    className="flex items-center space-x-3 p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors cursor-pointer"
                     onClick={() => toggleEventCompletion(event)}
                   >
                     <span className="text-lg">{event.icon}</span>
@@ -474,7 +510,7 @@ const Agenda = () => {
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-xs">
-                      {Math.ceil((new Date(event.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dia(s)
+                      {Math.ceil((new Date(event.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dia(s)
                     </Badge>
                   </div>
                 ))}
@@ -488,6 +524,61 @@ const Agenda = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Past Events */}
+      {pastEvents.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-gray-600" />
+                <span>Eventos Passados</span>
+              </CardTitle>
+              <CardDescription>
+                Últimos 30 dias
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {pastEvents.slice(0, 10).map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 transition-colors"
+                  >
+                    <span className="text-lg opacity-70">{event.icon}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-gray-700">{event.title}</h4>
+                        {event.type === 'vaccination' && (
+                          <Badge variant="outline" className="text-xs opacity-70">
+                            <Syringe className="w-3 h-3 mr-1" />
+                            Vacina
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {formatDateForDisplay(event.date)} às {event.time}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs opacity-70">
+                      Concluído
+                    </Badge>
+                  </div>
+                ))}
+                {pastEvents.length > 10 && (
+                  <p className="text-xs text-gray-500 text-center">
+                    +{pastEvents.length - 10} eventos passados
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 };
