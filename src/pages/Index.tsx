@@ -11,7 +11,8 @@ import {
   Settings,
   Bell,
   LogOut,
-  Syringe
+  Syringe,
+  Cow
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import Agenda from '@/components/Agenda';
@@ -21,6 +22,7 @@ import Relatorios from '@/components/Relatorios';
 import Configuracoes from '@/components/Configuracoes';
 import NotificationCenter from '@/components/NotificationCenter';
 import AgendaVacinal from '@/components/AgendaVacinal';
+import Rebanho from '@/components/Rebanho';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,7 +76,7 @@ const Index = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-8 w-full mb-8 bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid grid-cols-9 w-full mb-8 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <Home className="w-4 h-4" />
               <span className="hidden md:inline">Dashboard</span>
@@ -86,6 +88,10 @@ const Index = () => {
             <TabsTrigger value="vacinas" className="flex items-center space-x-2">
               <Syringe className="w-4 h-4" />
               <span className="hidden md:inline">Vacinas</span>
+            </TabsTrigger>
+            <TabsTrigger value="rebanho" className="flex items-center space-x-2">
+              <Cow className="w-4 h-4" />
+              <span className="hidden md:inline">Rebanho</span>
             </TabsTrigger>
             <TabsTrigger value="estoque" className="flex items-center space-x-2">
               <Package className="w-4 h-4" />
@@ -124,6 +130,10 @@ const Index = () => {
 
           <TabsContent value="vacinas">
             <AgendaVacinal />
+          </TabsContent>
+
+          <TabsContent value="rebanho">
+            <Rebanho />
           </TabsContent>
 
           <TabsContent value="estoque">
