@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -90,10 +91,12 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
           item.reproductive_status = item.reproductive_status.toLowerCase();
         }
 
-        // Validar data
-        if (item.last_calving_date && !isValidDate(item.last_calving_date)) {
-          item.errors.push('Data do último parto inválida (use YYYY-MM-DD)');
+        // Validar e converter data
+        if (item.last_calving_date && !isValidDateAndConvert(item.last_calving_date)) {
+          item.errors.push('Data do último parto inválida (use DD/MM/YYYY ou YYYY-MM-DD)');
           item.valid = false;
+        } else if (item.last_calving_date) {
+          item.last_calving_date = convertToISODate(item.last_calving_date);
         }
 
         processedItems.push(item);
@@ -109,9 +112,45 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
     }
   };
 
-  const isValidDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date.getTime());
+  const isValidDateAndConvert = (dateString: string): boolean => {
+    if (!dateString) return false;
+    
+    // Check for DD/MM/YYYY format
+    const ddmmyyyyRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (ddmmyyyyRegex.test(dateString)) {
+      const [day, month, year] = dateString.split('/');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return date instanceof Date && !isNaN(date.getTime()) && 
+             date.getFullYear() == parseInt(year) &&
+             date.getMonth() == parseInt(month) - 1 &&
+             date.getDate() == parseInt(day);
+    }
+    
+    // Check for YYYY-MM-DD format
+    const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (yyyymmddRegex.test(dateString)) {
+      const date = new Date(dateString);
+      return date instanceof Date && !isNaN(date.getTime());
+    }
+    
+    return false;
+  };
+
+  const convertToISODate = (dateString: string): string => {
+    if (!dateString) return '';
+    
+    // If already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    // Convert DD/MM/YYYY to YYYY-MM-DD
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+      const [day, month, year] = dateString.split('/');
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
+    return dateString;
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +223,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
                   Clique para selecionar arquivo CSV
                 </span>
                 <span className="mt-1 block text-xs text-gray-500">
-                  Formato: Código, Nome, Estado Reprodutivo, Observações, Data Último Parto, DEL, PPS, Intervalo Parto, Média DEL
+                  Formato: Código, Nome, Estado Reprodutivo, Observações, Data Último Parto (DD/MM/YYYY), DEL, PPS, Intervalo Parto, Média DEL
                 </span>
               </Label>
               <Input
