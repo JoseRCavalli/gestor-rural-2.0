@@ -58,18 +58,19 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
         
         if (columns.length < 3) return;
 
+        // Mapear campos do CSV
         const item: ImportItem = {
           tag: columns[0] || '',
           name: columns[1] || null,
           reproductive_status: columns[2] || '',
-          phase: columns[2] || '',
+          phase: mapPhase(columns[2] || ''),
           observations: columns[3] || '',
           last_calving_date: columns[4] || '',
           days_in_lactation: columns[5] ? parseInt(columns[5]) : null,
           milk_control: columns[6] ? parseFloat(columns[6]) : null,
           expected_calving_interval: columns[7] ? parseInt(columns[7]) : null,
           del_average: columns[8] ? parseFloat(columns[8]) : null,
-          birth_date: new Date().toISOString().split('T')[0], // Default birth date
+          birth_date: generateBirthDate(columns[2] || ''), // Gerar data de nascimento baseada na fase
           valid: true,
           errors: []
         };
@@ -85,18 +86,26 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
           item.valid = false;
         }
 
-        // Validar status reprodutivo
-        const validStatuses = ['bezerra', 'novilha', 'vaca lactante', 'vaca seca', 'aberta', 'ciclando', 'gestante', 'dg+', 'dg-', 'seca'];
-        if (item.reproductive_status && !validStatuses.includes(item.reproductive_status.toLowerCase())) {
-          item.reproductive_status = item.reproductive_status.toLowerCase();
+        // Validar e converter data do último parto
+        if (item.last_calving_date) {
+          const convertedDate = convertDateToISO(item.last_calving_date);
+          if (!convertedDate) {
+            item.errors.push('Data do último parto inválida (use DD/MM/YYYY ou YYYY-MM-DD)');
+            item.valid = false;
+          } else {
+            item.last_calving_date = convertedDate;
+          }
         }
 
-        // Validar e converter data
-        if (item.last_calving_date && !isValidDateAndConvert(item.last_calving_date)) {
-          item.errors.push('Data do último parto inválida (use DD/MM/YYYY ou YYYY-MM-DD)');
+        // Validar DEL e PPS se fornecidos
+        if (item.days_in_lactation !== null && (item.days_in_lactation < 0 || item.days_in_lactation > 999)) {
+          item.errors.push('DEL deve estar entre 0 e 999 dias');
           item.valid = false;
-        } else if (item.last_calving_date) {
-          item.last_calving_date = convertToISODate(item.last_calving_date);
+        }
+
+        if (item.milk_control !== null && item.milk_control < 0) {
+          item.errors.push('PPS deve ser um valor positivo');
+          item.valid = false;
         }
 
         processedItems.push(item);
@@ -112,45 +121,84 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
     }
   };
 
-  const isValidDateAndConvert = (dateString: string): boolean => {
-    if (!dateString) return false;
+  const mapPhase = (reproductiveStatus: string): string => {
+    const status = reproductiveStatus.toLowerCase().trim();
     
-    // Check for DD/MM/YYYY format
-    const ddmmyyyyRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (ddmmyyyyRegex.test(dateString)) {
-      const [day, month, year] = dateString.split('/');
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      return date instanceof Date && !isNaN(date.getTime()) && 
-             date.getFullYear() == parseInt(year) &&
-             date.getMonth() == parseInt(month) - 1 &&
-             date.getDate() == parseInt(day);
+    // Mapear estados reprodutivos para fases do sistema
+    if (status.includes('bezerra') || status.includes('bezerr')) {
+      return 'bezerra';
+    }
+    if (status.includes('novilha') || status.includes('novill')) {
+      return 'novilha';
+    }
+    if (status.includes('lactante') || status.includes('lactação') || status.includes('ordenhando')) {
+      return 'vaca_lactante';
+    }
+    if (status.includes('seca') || status.includes('gestante') || status.includes('prenha')) {
+      return 'vaca_seca';
     }
     
-    // Check for YYYY-MM-DD format
-    const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (yyyymmddRegex.test(dateString)) {
-      const date = new Date(dateString);
-      return date instanceof Date && !isNaN(date.getTime());
-    }
-    
-    return false;
+    // Padrão para casos não identificados
+    return 'vaca_seca';
   };
 
-  const convertToISODate = (dateString: string): string => {
-    if (!dateString) return '';
+  const generateBirthDate = (reproductiveStatus: string): string => {
+    const today = new Date();
+    const status = reproductiveStatus.toLowerCase().trim();
     
-    // If already in YYYY-MM-DD format, return as is
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return dateString;
+    // Estimar idade baseada no status reprodutivo
+    let ageInMonths = 24; // Padrão para vaca adulta
+    
+    if (status.includes('bezerra') || status.includes('bezerr')) {
+      ageInMonths = 6; // 6 meses
+    } else if (status.includes('novilha') || status.includes('novill')) {
+      ageInMonths = 18; // 18 meses
+    } else if (status.includes('lactante') || status.includes('seca') || status.includes('gestante')) {
+      ageInMonths = 36; // 3 anos
     }
     
-    // Convert DD/MM/YYYY to YYYY-MM-DD
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-      const [day, month, year] = dateString.split('/');
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const birthDate = new Date(today);
+    birthDate.setMonth(birthDate.getMonth() - ageInMonths);
+    
+    return birthDate.toISOString().split('T')[0];
+  };
+
+  const convertDateToISO = (dateString: string): string | null => {
+    if (!dateString.trim()) return null;
+    
+    // Formato DD/MM/YYYY
+    const ddmmyyyyRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const ddmmMatch = dateString.match(ddmmyyyyRegex);
+    
+    if (ddmmMatch) {
+      const [, day, month, year] = ddmmMatch;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      // Validar se a data é válida
+      if (date.getFullYear() == parseInt(year) &&
+          date.getMonth() == parseInt(month) - 1 &&
+          date.getDate() == parseInt(day)) {
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
     }
     
-    return dateString;
+    // Formato YYYY-MM-DD
+    const yyyymmddRegex = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+    const yyyymmMatch = dateString.match(yyyymmddRegex);
+    
+    if (yyyymmMatch) {
+      const [, year, month, day] = yyyymmMatch;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      // Validar se a data é válida
+      if (date.getFullYear() == parseInt(year) &&
+          date.getMonth() == parseInt(month) - 1 &&
+          date.getDate() == parseInt(day)) {
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+    
+    return null;
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,7 +227,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
       const animalsToImport = validItems.map(item => ({
         tag: item.tag,
         name: item.name,
-        phase: item.reproductive_status,
+        phase: item.phase,
         birth_date: item.birth_date,
         reproductive_status: item.reproductive_status,
         observations: item.observations || undefined,
@@ -191,6 +239,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
       }));
 
       await importAnimals(animalsToImport);
+      toast.success(`${validItems.length} animais importados com sucesso!`);
       onClose();
     } catch (error) {
       console.error('Error importing:', error);
@@ -278,6 +327,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
                       <TableHead>Código</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Categoria</TableHead>
+                      <TableHead>Fase</TableHead>
                       <TableHead>DEL</TableHead>
                       <TableHead>PPS</TableHead>
                       <TableHead>Erros</TableHead>
@@ -296,6 +346,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
                         <TableCell>{item.tag}</TableCell>
                         <TableCell>{item.name || '-'}</TableCell>
                         <TableCell>{item.reproductive_status}</TableCell>
+                        <TableCell>{item.phase}</TableCell>
                         <TableCell>{item.days_in_lactation || '-'}</TableCell>
                         <TableCell>{item.milk_control || '-'}</TableCell>
                         <TableCell>
