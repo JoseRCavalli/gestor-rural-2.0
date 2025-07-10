@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Upload, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { useHerd } from '@/hooks/useHerd';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 interface HerdImporterProps {
   onClose: () => void;
@@ -41,36 +41,65 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
     setLoading(true);
     
     try {
-      const text = await selectedFile.text();
-      const lines = text.split('\n').filter(line => line.trim());
+      let dataLines: string[][] = [];
       
-      if (lines.length === 0) {
-        toast.error('Arquivo vazio');
+      // Check if it's an Excel file
+      if (selectedFile.name.toLowerCase().endsWith('.xlsx') || selectedFile.name.toLowerCase().endsWith('.xls')) {
+        console.log('Processing Excel file:', selectedFile.name);
+        
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        // Get the first worksheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to array of arrays
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        dataLines = jsonData as string[][];
+        
+        console.log('Excel data processed:', dataLines.length, 'rows');
+      } else {
+        // Process CSV file
+        console.log('Processing CSV file:', selectedFile.name);
+        const text = await selectedFile.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length === 0) {
+          toast.error('Arquivo vazio');
+          return;
+        }
+
+        dataLines = lines.map(line => 
+          line.split(',').map(col => col.trim().replace(/"/g, ''))
+        );
+      }
+      
+      if (dataLines.length === 0) {
+        toast.error('Arquivo vazio ou formato não reconhecido');
         return;
       }
 
-      // Remove header line
-      const dataLines = lines.slice(1);
+      // Remove header line (first row is usually headers)
       const processedItems: ImportItem[] = [];
+      const startIndex = 1; // Skip header row
 
-      dataLines.forEach((line, index) => {
-        const columns = line.split(',').map(col => col.trim().replace(/"/g, ''));
-        
+      dataLines.slice(startIndex).forEach((columns, index) => {
         if (columns.length < 3) return;
 
-        // Mapear campos do CSV
+        // Mapear campos do arquivo
         const item: ImportItem = {
-          tag: columns[0] || '',
-          name: columns[1] || null,
-          reproductive_status: columns[2] || '',
-          phase: mapPhase(columns[2] || ''),
-          observations: columns[3] || '',
-          last_calving_date: columns[4] || '',
-          days_in_lactation: columns[5] ? parseInt(columns[5]) : null,
-          milk_control: columns[6] ? parseFloat(columns[6]) : null,
-          expected_calving_interval: columns[7] ? parseInt(columns[7]) : null,
-          del_average: columns[8] ? parseFloat(columns[8]) : null,
-          birth_date: generateBirthDate(columns[2] || ''), // Gerar data de nascimento baseada na fase
+          tag: columns[0]?.toString() || '',
+          name: columns[1]?.toString() || null,
+          reproductive_status: columns[2]?.toString() || '',
+          phase: mapPhase(columns[2]?.toString() || ''),
+          observations: columns[3]?.toString() || '',
+          last_calving_date: columns[4]?.toString() || '',
+          days_in_lactation: columns[5] ? parseInt(columns[5].toString()) : null,
+          milk_control: columns[6] ? parseFloat(columns[6].toString()) : null,
+          expected_calving_interval: columns[7] ? parseInt(columns[7].toString()) : null,
+          del_average: columns[8] ? parseFloat(columns[8].toString()) : null,
+          birth_date: generateBirthDate(columns[2]?.toString() || ''),
           valid: true,
           errors: []
         };
@@ -115,7 +144,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
       toast.success(`${processedItems.length} linhas processadas`);
     } catch (error) {
       console.error('Error processing file:', error);
-      toast.error('Erro ao processar arquivo');
+      toast.error('Erro ao processar arquivo. Verifique se o formato está correto.');
     } finally {
       setLoading(false);
     }
@@ -204,8 +233,9 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
-        toast.error('Por favor, selecione um arquivo CSV');
+      const fileName = selectedFile.name.toLowerCase();
+      if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+        toast.error('Por favor, selecione um arquivo CSV, XLSX ou XLS');
         return;
       }
       setFile(selectedFile);
@@ -258,7 +288,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
         <DialogHeader>
           <DialogTitle>Importar Rebanho</DialogTitle>
           <DialogDescription>
-            Importe os dados do rebanho através de um arquivo CSV
+            Importe os dados do rebanho através de um arquivo CSV ou Excel
           </DialogDescription>
         </DialogHeader>
 
@@ -269,7 +299,10 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
               <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <Label htmlFor="file-upload" className="cursor-pointer">
                 <span className="mt-2 block text-sm font-medium text-gray-900">
-                  Clique para selecionar arquivo CSV
+                  Clique para selecionar arquivo CSV ou Excel
+                </span>
+                <span className="mt-1 block text-xs text-gray-500">
+                  Formatos aceitos: .csv, .xlsx, .xls
                 </span>
                 <span className="mt-1 block text-xs text-gray-500">
                   Formato: Código, Nome, Estado Reprodutivo, Observações, Data Último Parto (DD/MM/YYYY), DEL, PPS, Intervalo Parto, Média DEL
@@ -278,7 +311,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
               <Input
                 id="file-upload"
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleFileChange}
                 className="sr-only"
               />
