@@ -1,33 +1,33 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Beef, Plus, Edit2, Trash2, Search, Upload } from 'lucide-react';
+import { Beef, Plus, Edit2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useHerd } from '@/hooks/useHerd';
+import { useHerd, HerdAnimal } from '@/hooks/useHerd';
 import HerdForm from '@/components/HerdForm';
 import HerdImporter from '@/components/HerdImporter';
 import HerdStats from '@/components/HerdStats';
 
 const Rebanho = () => {
-  const { animals, loading } = useHerd();
+  const { herd, loading } = useHerd();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPhase, setSelectedPhase] = useState('todas');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAnimal, setEditingAnimal] = useState<any>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [editingAnimal, setEditingAnimal] = useState<HerdAnimal | null>(null);
 
-  const filteredAnimals = animals.filter(animal => {
+  const filteredAnimals = herd.filter((animal: HerdAnimal) => {
     const searchRegex = new RegExp(searchTerm, 'i');
     const phaseMatch = selectedPhase === 'todas' || animal.phase === selectedPhase;
-    return (searchRegex.test(animal.name) || searchRegex.test(animal.tag)) && phaseMatch;
+    return (searchRegex.test(animal.name || '') || searchRegex.test(animal.tag)) && phaseMatch;
   });
 
-  const phases = ['todas', ...new Set(animals.map(animal => animal.phase))];
+  const phases = ['todas', ...new Set(herd.map((animal: HerdAnimal) => animal.phase))];
 
-  const handleOpenDialog = (animal?: any) => {
+  const handleOpenDialog = (animal?: HerdAnimal) => {
     setEditingAnimal(animal || null);
     setIsDialogOpen(true);
   };
@@ -35,6 +35,10 @@ const Rebanho = () => {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingAnimal(null);
+  };
+
+  const handleCloseImportDialog = () => {
+    setIsImportDialogOpen(false);
   };
 
   // Função para formatar data no formato brasileiro
@@ -49,6 +53,13 @@ const Rebanho = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">🐄 Controle de Rebanho</h2>
         <div className="flex items-center space-x-4">
+          <Button 
+            variant="outline"
+            onClick={() => setIsImportDialogOpen(true)}
+            className="flex items-center space-x-2"
+          >
+            <span>Importar Rebanho</span>
+          </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center space-x-2">
@@ -79,13 +90,9 @@ const Rebanho = () => {
       </motion.div>
 
       {/* Importador de Rebanho */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <HerdImporter onImportComplete={() => window.location.reload()} />
-      </motion.div>
+      {isImportDialogOpen && (
+        <HerdImporter onClose={handleCloseImportDialog} />
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -113,7 +120,7 @@ const Rebanho = () => {
               onChange={(e) => setSelectedPhase(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
             >
-              {phases.map(phase => (
+              {phases.map((phase: string) => (
                 <option key={phase} value={phase}>
                   {phase}
                 </option>
@@ -129,7 +136,7 @@ const Rebanho = () => {
             {filteredAnimals.length === 0 ? (
               <div className="text-center py-4 text-gray-500">Nenhum animal encontrado.</div>
             ) : (
-              filteredAnimals.map(animal => (
+              filteredAnimals.map((animal: HerdAnimal) => (
                 <motion.div
                   key={animal.id}
                   className="bg-gray-50 rounded-lg p-4"
