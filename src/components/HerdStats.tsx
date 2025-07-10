@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Cow, 
+  Beef, 
   Heart, 
   Calendar, 
   TrendingUp, 
@@ -19,26 +19,30 @@ const HerdStats = () => {
   // Estatísticas básicas
   const totalAnimals = herd.length;
   
-  // Estatísticas por estado reprodutivo
-  const reproductiveStats = herd.reduce((acc, animal) => {
-    const status = animal.reproductive_status.toLowerCase();
+  // Estatísticas por fase/status
+  const phaseStats = herd.reduce((acc, animal) => {
+    const status = (animal.reproductive_status || animal.phase).toLowerCase();
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // Estatísticas de lactação
-  const lactatingAnimals = herd.filter(animal => animal.days_in_lactation && animal.days_in_lactation > 0);
+  // Estatísticas de lactação (simulado)
+  const lactatingAnimals = herd.filter(animal => 
+    (animal.reproductive_status || animal.phase).toLowerCase().includes('lactante') || 
+    animal.days_in_lactation && animal.days_in_lactation > 0
+  );
+  
   const averageDEL = lactatingAnimals.length > 0 
-    ? Math.round(lactatingAnimals.reduce((sum, animal) => sum + (animal.days_in_lactation || 0), 0) / lactatingAnimals.length)
+    ? Math.round(lactatingAnimals.reduce((sum, animal) => sum + (animal.days_in_lactation || 150), 0) / lactatingAnimals.length)
     : 0;
 
-  // Controle leiteiro
+  // Controle leiteiro (simulado)
   const milkControlAnimals = herd.filter(animal => animal.milk_control && animal.milk_control > 0);
   const averageMilkProduction = milkControlAnimals.length > 0
     ? (milkControlAnimals.reduce((sum, animal) => sum + (animal.milk_control || 0), 0) / milkControlAnimals.length).toFixed(1)
-    : 0;
+    : '0';
 
-  // Animais com parto recente (últimos 60 dias)
+  // Animais com parto recente (simulado - últimos 60 dias)
   const recentCalvings = herd.filter(animal => {
     if (!animal.last_calving_date) return false;
     const calvingDate = new Date(animal.last_calving_date);
@@ -54,7 +58,11 @@ const HerdStats = () => {
       'gestante': 'bg-green-100 text-green-800',
       'dg+': 'bg-green-100 text-green-800',
       'dg-': 'bg-red-100 text-red-800',
-      'seca': 'bg-gray-100 text-gray-800'
+      'seca': 'bg-gray-100 text-gray-800',
+      'bezerra': 'bg-blue-100 text-blue-800',
+      'novilha': 'bg-purple-100 text-purple-800',
+      'vaca lactante': 'bg-green-100 text-green-800',
+      'vaca seca': 'bg-gray-100 text-gray-800'
     };
     return statusColors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -66,7 +74,11 @@ const HerdStats = () => {
       'gestante': 'Gestante',
       'dg+': 'DG+',
       'dg-': 'DG-',
-      'seca': 'Seca'
+      'seca': 'Seca',
+      'bezerra': 'Bezerra',
+      'novilha': 'Novilha',
+      'vaca lactante': 'Vaca Lactante',
+      'vaca seca': 'Vaca Seca'
     };
     return labels[status] || status;
   };
@@ -78,7 +90,7 @@ const HerdStats = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Animais</CardTitle>
-            <Cow className="h-4 w-4 text-green-600" />
+            <Beef className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalAnimals}</div>
@@ -128,24 +140,24 @@ const HerdStats = () => {
         </Card>
       </div>
 
-      {/* Status Reprodutivo */}
+      {/* Status/Fase dos Animais */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Heart className="w-5 h-5 text-pink-600" />
-            <span>Status Reprodutivo</span>
+            <span>Categorias do Rebanho</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Object.entries(reproductiveStats).map(([status, count]) => (
+            {Object.entries(phaseStats).map(([status, count]) => (
               <div key={status} className="text-center p-4 rounded-lg border">
                 <Badge className={`mb-2 ${getStatusColor(status)}`}>
                   {getStatusLabel(status)}
                 </Badge>
                 <div className="text-2xl font-bold text-gray-900">{count}</div>
                 <div className="text-xs text-gray-500">
-                  {((count / totalAnimals) * 100).toFixed(1)}%
+                  {totalAnimals > 0 ? ((count / totalAnimals) * 100).toFixed(1) : 0}%
                 </div>
               </div>
             ))}
@@ -197,19 +209,19 @@ const HerdStats = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Gestantes:</span>
                 <span className="font-semibold text-green-600">
-                  {(reproductiveStats['gestante'] || 0) + (reproductiveStats['dg+'] || 0)}
+                  {(phaseStats['gestante'] || 0) + (phaseStats['dg+'] || 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Abertas:</span>
                 <span className="font-semibold text-red-600">
-                  {(reproductiveStats['aberta'] || 0) + (reproductiveStats['dg-'] || 0)}
+                  {(phaseStats['aberta'] || 0) + (phaseStats['dg-'] || 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Em observação:</span>
                 <span className="font-semibold text-yellow-600">
-                  {reproductiveStats['ciclando'] || 0}
+                  {phaseStats['ciclando'] || 0}
                 </span>
               </div>
             </div>
@@ -221,7 +233,7 @@ const HerdStats = () => {
       {totalAnimals === 0 && (
         <Card>
           <CardContent className="text-center py-8">
-            <Cow className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <Beef className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Rebanho Vazio</h3>
             <p className="text-gray-600 mb-4">
               Você ainda não cadastrou nenhum animal no sistema.

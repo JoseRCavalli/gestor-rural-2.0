@@ -12,7 +12,7 @@ import {
   Bell,
   LogOut,
   Syringe,
-  Cow
+  Beef
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import Agenda from '@/components/Agenda';
@@ -90,7 +90,7 @@ const Index = () => {
               <span className="hidden md:inline">Vacinas</span>
             </TabsTrigger>
             <TabsTrigger value="rebanho" className="flex items-center space-x-2">
-              <Cow className="w-4 h-4" />
+              <Beef className="w-4 h-4" />
               <span className="hidden md:inline">Rebanho</span>
             </TabsTrigger>
             <TabsTrigger value="estoque" className="flex items-center space-x-2">

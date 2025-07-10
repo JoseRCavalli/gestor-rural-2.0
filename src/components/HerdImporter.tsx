@@ -15,8 +15,10 @@ interface HerdImporterProps {
 }
 
 interface ImportItem {
-  code: string;
-  name: string;
+  tag: string;
+  name: string | null;
+  phase: string;
+  birth_date: string;
   reproductive_status: string;
   observations: string;
   last_calving_date: string;
@@ -57,41 +59,35 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
         if (columns.length < 3) return;
 
         const item: ImportItem = {
-          code: columns[0] || '',
-          name: columns[1] || '',
+          tag: columns[0] || '',
+          name: columns[1] || null,
           reproductive_status: columns[2] || '',
+          phase: columns[2] || '',
           observations: columns[3] || '',
           last_calving_date: columns[4] || '',
           days_in_lactation: columns[5] ? parseInt(columns[5]) : null,
           milk_control: columns[6] ? parseFloat(columns[6]) : null,
           expected_calving_interval: columns[7] ? parseInt(columns[7]) : null,
           del_average: columns[8] ? parseFloat(columns[8]) : null,
+          birth_date: new Date().toISOString().split('T')[0], // Default birth date
           valid: true,
           errors: []
         };
 
         // Validações
-        if (!item.code) {
+        if (!item.tag) {
           item.errors.push('Código do animal é obrigatório');
           item.valid = false;
         }
 
-        if (!item.name) {
-          item.errors.push('Nome do animal é obrigatório');
-          item.valid = false;
-        }
-
         if (!item.reproductive_status) {
-          item.errors.push('Estado reprodutivo é obrigatório');
+          item.errors.push('Estado reprodutivo/categoria é obrigatório');
           item.valid = false;
         }
 
         // Validar status reprodutivo
-        const validStatuses = ['aberta', 'ciclando', 'gestante', 'dg+', 'dg-', 'seca'];
+        const validStatuses = ['bezerra', 'novilha', 'vaca lactante', 'vaca seca', 'aberta', 'ciclando', 'gestante', 'dg+', 'dg-', 'seca'];
         if (item.reproductive_status && !validStatuses.includes(item.reproductive_status.toLowerCase())) {
-          item.errors.push('Estado reprodutivo inválido');
-          item.valid = false;
-        } else {
           item.reproductive_status = item.reproductive_status.toLowerCase();
         }
 
@@ -143,8 +139,10 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
     
     try {
       const animalsToImport = validItems.map(item => ({
-        code: item.code,
+        tag: item.tag,
         name: item.name,
+        phase: item.reproductive_status,
+        birth_date: item.birth_date,
         reproductive_status: item.reproductive_status,
         observations: item.observations || undefined,
         last_calving_date: item.last_calving_date || undefined,
@@ -241,7 +239,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
                       <TableHead>Status</TableHead>
                       <TableHead>Código</TableHead>
                       <TableHead>Nome</TableHead>
-                      <TableHead>Estado Reprodutivo</TableHead>
+                      <TableHead>Categoria</TableHead>
                       <TableHead>DEL</TableHead>
                       <TableHead>PPS</TableHead>
                       <TableHead>Erros</TableHead>
@@ -257,8 +255,8 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
                             <XCircle className="w-4 h-4 text-red-600" />
                           )}
                         </TableCell>
-                        <TableCell>{item.code}</TableCell>
-                        <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.tag}</TableCell>
+                        <TableCell>{item.name || '-'}</TableCell>
                         <TableCell>{item.reproductive_status}</TableCell>
                         <TableCell>{item.days_in_lactation || '-'}</TableCell>
                         <TableCell>{item.milk_control || '-'}</TableCell>

@@ -6,18 +6,21 @@ import { toast } from 'sonner';
 
 export interface HerdAnimal {
   id: string;
-  code: string;
-  name: string;
-  reproductive_status: string;
+  tag: string;
+  name: string | null;
+  phase: string;
+  birth_date: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  // Additional fields we'll store in a JSON column or separate table later
+  reproductive_status?: string;
   observations?: string;
   last_calving_date?: string;
   days_in_lactation?: number;
   milk_control?: number;
   expected_calving_interval?: number;
   del_average?: number;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export const useHerd = () => {
@@ -30,7 +33,7 @@ export const useHerd = () => {
 
     try {
       const { data, error } = await supabase
-        .from('herd')
+        .from('animals')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -41,7 +44,13 @@ export const useHerd = () => {
         return;
       }
 
-      setHerd(data || []);
+      // Transform the animals data to match our herd interface
+      const herdData = (data || []).map(animal => ({
+        ...animal,
+        reproductive_status: animal.phase, // Use phase as reproductive status for now
+      }));
+
+      setHerd(herdData);
     } catch (error) {
       console.error('Error fetching herd:', error);
       toast.error('Erro ao carregar rebanho');
@@ -55,9 +64,12 @@ export const useHerd = () => {
 
     try {
       const { data, error } = await supabase
-        .from('herd')
+        .from('animals')
         .insert([{
-          ...animalData,
+          tag: animalData.tag,
+          name: animalData.name || null,
+          phase: animalData.reproductive_status || animalData.phase,
+          birth_date: animalData.birth_date,
           user_id: user.id
         }])
         .select()
@@ -69,9 +81,14 @@ export const useHerd = () => {
         return;
       }
 
-      setHerd(prev => [data, ...prev]);
+      const newAnimal = {
+        ...data,
+        reproductive_status: data.phase,
+      };
+
+      setHerd(prev => [newAnimal, ...prev]);
       toast.success('Animal cadastrado com sucesso!');
-      return data;
+      return newAnimal;
     } catch (error) {
       console.error('Error adding animal:', error);
       toast.error('Erro ao cadastrar animal');
@@ -83,8 +100,13 @@ export const useHerd = () => {
 
     try {
       const { data, error } = await supabase
-        .from('herd')
-        .update(animalData)
+        .from('animals')
+        .update({
+          tag: animalData.tag,
+          name: animalData.name,
+          phase: animalData.reproductive_status || animalData.phase,
+          birth_date: animalData.birth_date,
+        })
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
@@ -96,11 +118,16 @@ export const useHerd = () => {
         return;
       }
 
+      const updatedAnimal = {
+        ...data,
+        reproductive_status: data.phase,
+      };
+
       setHerd(prev => prev.map(animal => 
-        animal.id === id ? data : animal
+        animal.id === id ? updatedAnimal : animal
       ));
       toast.success('Animal atualizado com sucesso!');
-      return data;
+      return updatedAnimal;
     } catch (error) {
       console.error('Error updating animal:', error);
       toast.error('Erro ao atualizar animal');
@@ -112,7 +139,7 @@ export const useHerd = () => {
 
     try {
       const { error } = await supabase
-        .from('herd')
+        .from('animals')
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
@@ -136,12 +163,15 @@ export const useHerd = () => {
 
     try {
       const animalsWithUserId = animals.map(animal => ({
-        ...animal,
+        tag: animal.tag,
+        name: animal.name || null,
+        phase: animal.reproductive_status || animal.phase,
+        birth_date: animal.birth_date,
         user_id: user.id
       }));
 
       const { data, error } = await supabase
-        .from('herd')
+        .from('animals')
         .insert(animalsWithUserId)
         .select();
 
@@ -151,9 +181,14 @@ export const useHerd = () => {
         return;
       }
 
-      setHerd(prev => [...(data || []), ...prev]);
+      const newAnimals = (data || []).map(animal => ({
+        ...animal,
+        reproductive_status: animal.phase,
+      }));
+
+      setHerd(prev => [...newAnimals, ...prev]);
       toast.success(`${data?.length || 0} animais importados com sucesso!`);
-      return data;
+      return newAnimals;
     } catch (error) {
       console.error('Error importing animals:', error);
       toast.error('Erro ao importar animais');

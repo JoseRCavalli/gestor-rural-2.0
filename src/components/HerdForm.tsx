@@ -19,8 +19,10 @@ const HerdForm = ({ animal, onClose }: HerdFormProps) => {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    code: '',
+    tag: '',
     name: '',
+    phase: '',
+    birth_date: '',
     reproductive_status: '',
     observations: '',
     last_calving_date: '',
@@ -33,9 +35,11 @@ const HerdForm = ({ animal, onClose }: HerdFormProps) => {
   useEffect(() => {
     if (animal) {
       setFormData({
-        code: animal.code || '',
+        tag: animal.tag || '',
         name: animal.name || '',
-        reproductive_status: animal.reproductive_status || '',
+        phase: animal.phase || '',
+        birth_date: animal.birth_date || '',
+        reproductive_status: animal.reproductive_status || animal.phase || '',
         observations: animal.observations || '',
         last_calving_date: animal.last_calving_date || '',
         days_in_lactation: animal.days_in_lactation?.toString() || '',
@@ -52,9 +56,11 @@ const HerdForm = ({ animal, onClose }: HerdFormProps) => {
 
     try {
       const animalData = {
-        code: formData.code,
-        name: formData.name,
-        reproductive_status: formData.reproductive_status,
+        tag: formData.tag,
+        name: formData.name || null,
+        phase: formData.reproductive_status || formData.phase,
+        birth_date: formData.birth_date,
+        reproductive_status: formData.reproductive_status || formData.phase,
         observations: formData.observations || undefined,
         last_calving_date: formData.last_calving_date || undefined,
         days_in_lactation: formData.days_in_lactation ? parseInt(formData.days_in_lactation) : undefined,
@@ -100,37 +106,40 @@ const HerdForm = ({ animal, onClose }: HerdFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="code">Código do Animal *</Label>
+              <Label htmlFor="tag">Código/Tag do Animal *</Label>
               <Input
-                id="code"
-                value={formData.code}
-                onChange={(e) => handleChange('code', e.target.value)}
+                id="tag"
+                value={formData.tag}
+                onChange={(e) => handleChange('tag', e.target.value)}
                 placeholder="Ex: 001, A001, etc."
                 required
               />
             </div>
 
             <div>
-              <Label htmlFor="name">Nome do Animal *</Label>
+              <Label htmlFor="name">Nome do Animal</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
                 placeholder="Nome ou identificação"
-                required
               />
             </div>
 
             <div>
-              <Label htmlFor="reproductive_status">Estado Reprodutivo *</Label>
+              <Label htmlFor="reproductive_status">Categoria/Fase *</Label>
               <Select 
                 value={formData.reproductive_status} 
                 onValueChange={(value) => handleChange('reproductive_status', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar estado" />
+                  <SelectValue placeholder="Selecionar categoria" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="bezerra">Bezerra</SelectItem>
+                  <SelectItem value="novilha">Novilha</SelectItem>
+                  <SelectItem value="vaca lactante">Vaca Lactante</SelectItem>
+                  <SelectItem value="vaca seca">Vaca Seca</SelectItem>
                   <SelectItem value="aberta">Aberta</SelectItem>
                   <SelectItem value="ciclando">Ciclando</SelectItem>
                   <SelectItem value="gestante">Gestante</SelectItem>
@@ -139,6 +148,17 @@ const HerdForm = ({ animal, onClose }: HerdFormProps) => {
                   <SelectItem value="seca">Seca</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="birth_date">Data de Nascimento *</Label>
+              <Input
+                id="birth_date"
+                type="date"
+                value={formData.birth_date}
+                onChange={(e) => handleChange('birth_date', e.target.value)}
+                required
+              />
             </div>
 
             <div>

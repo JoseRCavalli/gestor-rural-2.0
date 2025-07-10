@@ -14,7 +14,7 @@ import {
   Filter, 
   Edit, 
   Trash2,
-  Cow,
+  Beef,
   Calendar,
   Heart,
   Activity
@@ -36,9 +36,9 @@ const Rebanho = () => {
 
   // Filtrar animais
   const filteredHerd = herd.filter(animal => {
-    const matchesSearch = animal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         animal.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'todos' || animal.reproductive_status === filterStatus;
+    const matchesSearch = (animal.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                         animal.tag.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'todos' || (animal.reproductive_status || animal.phase) === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -49,7 +49,11 @@ const Rebanho = () => {
       'gestante': 'bg-green-100 text-green-800',
       'dg+': 'bg-green-100 text-green-800',
       'dg-': 'bg-red-100 text-red-800',
-      'seca': 'bg-gray-100 text-gray-800'
+      'seca': 'bg-gray-100 text-gray-800',
+      'bezerra': 'bg-blue-100 text-blue-800',
+      'novilha': 'bg-purple-100 text-purple-800',
+      'vaca lactante': 'bg-green-100 text-green-800',
+      'vaca seca': 'bg-gray-100 text-gray-800'
     };
     return statusColors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
@@ -79,7 +83,7 @@ const Rebanho = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center space-x-2">
-            <Cow className="w-6 h-6 text-green-600" />
+            <Beef className="w-6 h-6 text-green-600" />
             <span>Gestão do Rebanho</span>
           </h2>
           <p className="text-gray-600 mt-1">Controle completo do seu rebanho bovino</p>
@@ -132,19 +136,20 @@ const Rebanho = () => {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="status">Status Reprodutivo</Label>
+                  <Label htmlFor="status">Status/Fase</Label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecionar status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="bezerra">Bezerra</SelectItem>
+                      <SelectItem value="novilha">Novilha</SelectItem>
+                      <SelectItem value="vaca lactante">Vaca Lactante</SelectItem>
+                      <SelectItem value="vaca seca">Vaca Seca</SelectItem>
                       <SelectItem value="aberta">Aberta</SelectItem>
                       <SelectItem value="ciclando">Ciclando</SelectItem>
                       <SelectItem value="gestante">Gestante</SelectItem>
-                      <SelectItem value="dg+">DG+</SelectItem>
-                      <SelectItem value="dg-">DG-</SelectItem>
-                      <SelectItem value="seca">Seca</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -173,7 +178,7 @@ const Rebanho = () => {
             <CardContent>
               {filteredHerd.length === 0 ? (
                 <div className="text-center py-8">
-                  <Cow className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <Beef className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500">Nenhum animal encontrado</p>
                   <p className="text-sm text-gray-400">Cadastre ou importe animais para começar</p>
                 </div>
@@ -187,18 +192,18 @@ const Rebanho = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <Cow className="w-5 h-5 text-green-600" />
+                            <Beef className="w-5 h-5 text-green-600" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{animal.name}</h3>
-                            <p className="text-sm text-gray-500">Código: {animal.code}</p>
+                            <h3 className="font-semibold text-gray-900">{animal.name || 'Sem nome'}</h3>
+                            <p className="text-sm text-gray-500">Código: {animal.tag}</p>
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex items-center space-x-4">
-                        <Badge className={getStatusColor(animal.reproductive_status)}>
-                          {animal.reproductive_status}
+                        <Badge className={getStatusColor(animal.reproductive_status || animal.phase)}>
+                          {animal.reproductive_status || animal.phase}
                         </Badge>
                         
                         {animal.days_in_lactation && (
