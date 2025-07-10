@@ -8,10 +8,15 @@ const corsHeaders = {
 
 interface ImportItem {
   name: string;
+  code?: string;
   quantity: number;
   unit: string;
   category: string;
   min_stock: number;
+  average_cost?: number;
+  selling_price?: number;
+  reserved_stock?: number;
+  available_stock?: number;
   valid: boolean;
   errors: string[];
 }
@@ -115,11 +120,16 @@ serve(async (req) => {
     const firstRow = extractedData[0];
     const hasHeaders = firstRow.some(cell => 
       cell && (
+        cell.toLowerCase().includes('código') || 
         cell.toLowerCase().includes('nome') || 
         cell.toLowerCase().includes('item') ||
         cell.toLowerCase().includes('produto') ||
-        cell.toLowerCase().includes('quantidade') ||
-        cell.toLowerCase().includes('estoque')
+        cell.toLowerCase().includes('unidade') ||
+        cell.toLowerCase().includes('categoria') ||
+        cell.toLowerCase().includes('custo') ||
+        cell.toLowerCase().includes('venda') ||
+        cell.toLowerCase().includes('reservado') ||
+        cell.toLowerCase().includes('disponível')
       )
     );
     
@@ -132,30 +142,39 @@ serve(async (req) => {
 
       const item: ImportItem = {
         name: '',
+        code: '',
         quantity: 0,
         unit: 'kg',
         category: 'Geral',
         min_stock: 0,
+        average_cost: 0,
+        selling_price: 0,
+        reserved_stock: 0,
+        available_stock: 0,
         valid: true,
         errors: []
       };
 
-      // Try to map columns intelligently
-      let nameIndex = 0;
-      let quantityIndex = 1;
+      // Column mapping based on expected format:
+      // A: Código, B: Nome, C: Unidade, D: Categoria, E: Custo Médio, F: Vl. Venda, G: Est. Reservado, H: Est. Disponível
+      let codeIndex = 0;
+      let nameIndex = 1;
       let unitIndex = 2;
       let categoryIndex = 3;
-      let minStockIndex = 4;
+      let avgCostIndex = 4;
+      let sellingPriceIndex = 5;
+      let reservedStockIndex = 6;
+      let availableStockIndex = 7;
 
       // If we have headers, try to find the right columns
       if (hasHeaders && extractedData[0]) {
         const headers = extractedData[0].map(h => h.toLowerCase());
         
+        const codeHeaderIndex = headers.findIndex(h => 
+          h.includes('código') || h.includes('codigo')
+        );
         const nameHeaderIndex = headers.findIndex(h => 
           h.includes('nome') || h.includes('item') || h.includes('produto')
-        );
-        const quantityHeaderIndex = headers.findIndex(h => 
-          h.includes('quantidade') || h.includes('qtd') || h.includes('estoque')
         );
         const unitHeaderIndex = headers.findIndex(h => 
           h.includes('unidade') || h.includes('un') || h.includes('medida')
@@ -163,44 +182,54 @@ serve(async (req) => {
         const categoryHeaderIndex = headers.findIndex(h => 
           h.includes('categoria') || h.includes('tipo') || h.includes('grupo')
         );
-        const minStockHeaderIndex = headers.findIndex(h => 
-          h.includes('mínimo') || h.includes('min') || h.includes('limite')
+        const avgCostHeaderIndex = headers.findIndex(h => 
+          h.includes('custo') && h.includes('médio') || h.includes('custo medio')
+        );
+        const sellingPriceHeaderIndex = headers.findIndex(h => 
+          h.includes('venda') || h.includes('preço') || h.includes('preco')
+        );
+        const reservedStockHeaderIndex = headers.findIndex(h => 
+          h.includes('reservado')
+        );
+        const availableStockHeaderIndex = headers.findIndex(h => 
+          h.includes('disponível') || h.includes('disponivel')
         );
 
+        if (codeHeaderIndex >= 0) codeIndex = codeHeaderIndex;
         if (nameHeaderIndex >= 0) nameIndex = nameHeaderIndex;
-        if (quantityHeaderIndex >= 0) quantityIndex = quantityHeaderIndex;
         if (unitHeaderIndex >= 0) unitIndex = unitHeaderIndex;
         if (categoryHeaderIndex >= 0) categoryIndex = categoryHeaderIndex;
-        if (minStockHeaderIndex >= 0) minStockIndex = minStockHeaderIndex;
+        if (avgCostHeaderIndex >= 0) avgCostIndex = avgCostHeaderIndex;
+        if (sellingPriceHeaderIndex >= 0) sellingPriceIndex = sellingPriceHeaderIndex;
+        if (reservedStockHeaderIndex >= 0) reservedStockIndex = reservedStockHeaderIndex;
+        if (availableStockHeaderIndex >= 0) availableStockIndex = availableStockHeaderIndex;
       }
 
       // Extract data
+      item.code = (row[codeIndex] || '').toString().trim();
       item.name = (row[nameIndex] || '').toString().trim();
-      
-      // Validate and parse quantity
-      const quantityStr = (row[quantityIndex] || '').toString().replace(/[^\d.,]/g, '').replace(',', '.');
-      const quantity = parseFloat(quantityStr);
-      if (!quantityStr || isNaN(quantity) || quantity < 0) {
-        item.errors.push('Quantidade inválida ou ausente');
-        item.valid = false;
-      } else {
-        item.quantity = Math.floor(quantity);
-      }
-
-      // Set unit
       item.unit = (row[unitIndex] || '').toString().trim() || 'kg';
-
-      // Set category
       item.category = (row[categoryIndex] || '').toString().trim() || 'Geral';
 
-      // Validate and parse min_stock
-      const minStockStr = (row[minStockIndex] || '').toString().replace(/[^\d.,]/g, '').replace(',', '.');
-      const minStock = parseFloat(minStockStr);
-      if (!minStockStr || isNaN(minStock) || minStock < 0) {
-        item.min_stock = Math.max(1, Math.floor(item.quantity * 0.2)); // Default to 20% of quantity
-      } else {
-        item.min_stock = Math.floor(minStock);
-      }
+      // Parse numeric values
+      const parseNumericValue = (value: string) => {
+        if (!value) return 0;
+        // Replace comma with dot and remove non-numeric characters except dots
+        const cleanValue = value.toString().replace(',', '.').replace(/[^\d.-]/g, '');
+        const parsed = parseFloat(cleanValue);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      item.average_cost = parseNumericValue(row[avgCostIndex] || '0');
+      item.selling_price = parseNumericValue(row[sellingPriceIndex] || '0');
+      item.reserved_stock = Math.floor(parseNumericValue(row[reservedStockIndex] || '0'));
+      item.available_stock = Math.floor(parseNumericValue(row[availableStockIndex] || '0'));
+
+      // Set quantity as sum of reserved and available stock or available stock if no reserved
+      item.quantity = Math.max(item.available_stock, item.reserved_stock + item.available_stock);
+      
+      // Set min_stock as 20% of total quantity
+      item.min_stock = Math.max(1, Math.floor(item.quantity * 0.2));
 
       // Validate name
       if (!item.name || item.name.length < 2) {
@@ -208,7 +237,7 @@ serve(async (req) => {
         item.valid = false;
       }
 
-      console.log(`Row ${i}: ${item.name} - ${item.quantity} ${item.unit} - Valid: ${item.valid}`);
+      console.log(`Row ${i}: ${item.name} (${item.code}) - Qty: ${item.quantity} - Valid: ${item.valid}`);
       preview.push(item);
     }
 

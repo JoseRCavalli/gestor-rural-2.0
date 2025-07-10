@@ -12,10 +12,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ImportPreview {
   name: string;
+  code?: string;
   quantity: number;
   unit: string;
   category: string;
   min_stock: number;
+  average_cost?: number;
+  selling_price?: number;
+  reserved_stock?: number;
+  available_stock?: number;
   valid: boolean;
   errors: string[];
 }
@@ -116,6 +121,14 @@ const StockImporter = ({ onImportComplete }: { onImportComplete: () => void }) =
     }
   };
 
+  // Função para formatar valores em Real
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -168,11 +181,14 @@ const StockImporter = ({ onImportComplete }: { onImportComplete: () => void }) =
 
             <div className="text-xs text-gray-500 space-y-1">
               <p><strong>Formato esperado da planilha:</strong></p>
-              <p>• Coluna A: Nome do Item</p>
-              <p>• Coluna B: Quantidade</p>
-              <p>• Coluna C: Unidade (kg, litros, sacos, etc.)</p>
-              <p>• Coluna D: Categoria</p>
-              <p>• Coluna E: Estoque Mínimo</p>
+              <p>• Coluna A: Código do Item</p>
+              <p>• Coluna B: Nome do Item</p>
+              <p>• Coluna C: Unidade de Medida (kg, litros, UN, MT, SC, TN...)</p>
+              <p>• Coluna D: Categoria (Matéria-prima, Uso e Consumo...)</p>
+              <p>• Coluna E: Custo Médio (R$)</p>
+              <p>• Coluna F: Valor de Venda (R$)</p>
+              <p>• Coluna G: Estoque Reservado</p>
+              <p>• Coluna H: Estoque Disponível</p>
               <p>• Primeira linha pode ser cabeçalho (será ignorada)</p>
             </div>
           </>
@@ -209,10 +225,43 @@ const StockImporter = ({ onImportComplete }: { onImportComplete: () => void }) =
                           <AlertTriangle className="w-4 h-4 text-red-600" />
                         )}
                         <span className="font-medium">{item.name}</span>
+                        {item.code && <span className="text-sm text-gray-500">({item.code})</span>}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {item.quantity} {item.unit} - {item.category} (Min: {item.min_stock})
-                      </p>
+                      <div className="mt-1 space-y-1">
+                        <p className="text-sm text-gray-600">
+                          {item.unit} - {item.category}
+                        </p>
+                        {item.average_cost && (
+                          <p className="text-sm text-gray-600">
+                            Custo Médio: {formatCurrency(item.average_cost)}
+                          </p>
+                        )}
+                        {item.selling_price && (
+                          <p className="text-sm text-gray-600">
+                            Vl. Venda: {formatCurrency(item.selling_price)}
+                          </p>
+                        )}
+                        {item.reserved_stock && (
+                          <p className="text-sm text-gray-600">
+                            Est. Reservado: {item.reserved_stock} {item.unit}
+                            {item.average_cost && (
+                              <span className="text-green-600 ml-2">
+                                ({formatCurrency(item.reserved_stock * item.average_cost)})
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        {item.available_stock && (
+                          <p className="text-sm text-gray-600">
+                            Est. Disponível: {item.available_stock} {item.unit}
+                            {item.average_cost && (
+                              <span className="text-blue-600 ml-2">
+                                ({formatCurrency(item.available_stock * item.average_cost)})
+                              </span>
+                            )}
+                          </p>
+                        )}
+                      </div>
                       {!item.valid && item.errors.length > 0 && (
                         <div className="mt-2">
                           {item.errors.map((error, i) => (

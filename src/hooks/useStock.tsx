@@ -7,10 +7,15 @@ import { toast } from 'sonner';
 export interface StockItem {
   id: string;
   name: string;
+  code?: string;
   quantity: number;
   unit: string;
   min_stock: number;
   category: string;
+  average_cost?: number;
+  selling_price?: number;
+  reserved_stock?: number;
+  available_stock?: number;
   user_id: string;
   created_at: string;
   updated_at: string;

@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Plus, Edit2, Trash2, AlertTriangle, Search, History } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, AlertTriangle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,10 +20,15 @@ const Estoque = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
+    code: '',
     quantity: 0,
     unit: 'kg',
     category: 'Geral',
-    min_stock: 0
+    min_stock: 0,
+    average_cost: 0,
+    selling_price: 0,
+    reserved_stock: 0,
+    available_stock: 0
   });
 
   const filteredItems = stockItems.filter(item => {
@@ -47,19 +52,29 @@ const Estoque = () => {
       setEditingItem(item);
       setFormData({
         name: item.name,
+        code: item.code || '',
         quantity: item.quantity,
         unit: item.unit,
         category: item.category,
-        min_stock: item.min_stock
+        min_stock: item.min_stock,
+        average_cost: item.average_cost || 0,
+        selling_price: item.selling_price || 0,
+        reserved_stock: item.reserved_stock || 0,
+        available_stock: item.available_stock || 0
       });
     } else {
       setEditingItem(null);
       setFormData({
         name: '',
+        code: '',
         quantity: 0,
         unit: 'kg',
         category: 'Geral',
-        min_stock: 0
+        min_stock: 0,
+        average_cost: 0,
+        selling_price: 0,
+        reserved_stock: 0,
+        available_stock: 0
       });
     }
     setIsDialogOpen(true);
@@ -83,6 +98,19 @@ const Estoque = () => {
     await deleteStockItem(id);
   };
 
+  // Função para formatar valores em Real
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  // Função para calcular valor total
+  const calculateTotalValue = (quantity: number, cost: number) => {
+    return quantity * cost;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -95,7 +123,7 @@ const Estoque = () => {
                 <span>Adicionar Item</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>{editingItem ? 'Editar Item' : 'Adicionar Item'}</DialogTitle>
                 <DialogDescription>
@@ -103,77 +131,120 @@ const Estoque = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nome
-                  </Label>
-                  <Input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="code">Código</Label>
+                    <Input
+                      type="text"
+                      id="code"
+                      name="code"
+                      value={formData.code}
+                      onChange={handleInputChange}
+                      placeholder="Ex: 605"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="name">Nome do Item</Label>
+                    <Input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="Ex: Ração Bovinos"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="quantity" className="text-right">
-                    Quantidade
-                  </Label>
-                  <Input
-                    type="number"
-                    id="quantity"
-                    name="quantity"
-                    value={formData.quantity}
-                    onChange={(e) => handleInputChange({ target: { name: 'quantity', value: parseInt(e.target.value) } } as any)}
-                    className="col-span-3"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="unit">Unidade de Medida</Label>
+                    <Input
+                      type="text"
+                      id="unit"
+                      name="unit"
+                      value={formData.unit}
+                      onChange={handleInputChange}
+                      placeholder="Ex: kg, litros, UN, MT, SC"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Categoria</Label>
+                    <Input
+                      type="text"
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      placeholder="Ex: Matéria-prima, Uso e Consumo"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="unit" className="text-right">
-                    Unidade
-                  </Label>
-                  <Input
-                    type="text"
-                    id="unit"
-                    name="unit"
-                    value={formData.unit}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="average_cost">Custo Médio (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      id="average_cost"
+                      name="average_cost"
+                      value={formData.average_cost}
+                      onChange={(e) => handleInputChange({ target: { name: 'average_cost', value: parseFloat(e.target.value) || 0 } } as any)}
+                      placeholder="Ex: 1,92"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="selling_price">Valor de Venda (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      id="selling_price"
+                      name="selling_price"
+                      value={formData.selling_price}
+                      onChange={(e) => handleInputChange({ target: { name: 'selling_price', value: parseFloat(e.target.value) || 0 } } as any)}
+                      placeholder="Ex: 2,50"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right">
-                    Categoria
-                  </Label>
-                  <Input
-                    type="text"
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="reserved_stock">Estoque Reservado</Label>
+                    <Input
+                      type="number"
+                      id="reserved_stock"
+                      name="reserved_stock"
+                      value={formData.reserved_stock}
+                      onChange={(e) => handleInputChange({ target: { name: 'reserved_stock', value: parseInt(e.target.value) || 0 } } as any)}
+                      placeholder="Ex: 349495"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="available_stock">Estoque Disponível</Label>
+                    <Input
+                      type="number"
+                      id="available_stock"
+                      name="available_stock"
+                      value={formData.available_stock}
+                      onChange={(e) => handleInputChange({ target: { name: 'available_stock', value: parseInt(e.target.value) || 0 } } as any)}
+                      placeholder="Ex: 52"
+                    />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="min_stock" className="text-right">
-                    Estoque Mínimo
-                  </Label>
+                <div>
+                  <Label htmlFor="min_stock">Estoque Mínimo</Label>
                   <Input
                     type="number"
                     id="min_stock"
                     name="min_stock"
                     value={formData.min_stock}
-                    onChange={(e) => handleInputChange({ target: { name: 'min_stock', value: parseInt(e.target.value) } } as any)}
-                    className="col-span-3"
+                    onChange={(e) => handleInputChange({ target: { name: 'min_stock', value: parseInt(e.target.value) || 0 } } as any)}
                   />
                 </div>
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-end space-x-2">
                 <Button type="button" variant="secondary" onClick={handleCloseDialog}>
                   Cancelar
                 </Button>
-                <Button type="submit" onClick={handleSubmit} className="ml-2">
+                <Button type="submit" onClick={handleSubmit}>
                   {editingItem ? 'Salvar' : 'Adicionar'}
                 </Button>
               </div>
@@ -252,10 +323,46 @@ const Estoque = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-800">{item.name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {item.quantity} {item.unit}
-                      </p>
+                      {item.code && <p className="text-sm text-gray-600">Código: {item.code}</p>}
                       <p className="text-sm text-gray-600">Categoria: {item.category}</p>
+                      <p className="text-sm text-gray-600">Unidade: {item.unit}</p>
+                      
+                      {/* Custos e Valores */}
+                      {item.average_cost && (
+                        <p className="text-sm text-gray-600">
+                          Custo Médio: {formatCurrency(item.average_cost)}
+                        </p>
+                      )}
+                      {item.selling_price && (
+                        <p className="text-sm text-gray-600">
+                          Vl. Venda: {formatCurrency(item.selling_price)}
+                        </p>
+                      )}
+                      
+                      {/* Estoques */}
+                      {item.reserved_stock && (
+                        <div className="text-sm text-gray-600 mt-2">
+                          <p>Est. Reservado: {item.reserved_stock} {item.unit}</p>
+                          {item.average_cost && (
+                            <p className="text-green-600 font-medium">
+                              Valor Reservado: {formatCurrency(calculateTotalValue(item.reserved_stock, item.average_cost))}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {item.available_stock && (
+                        <div className="text-sm text-gray-600 mt-2">
+                          <p>Est. Disponível: {item.available_stock} {item.unit}</p>
+                          {item.average_cost && (
+                            <p className="text-blue-600 font-medium">
+                              Valor Disponível: {formatCurrency(calculateTotalValue(item.available_stock, item.average_cost))}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Alerta de estoque baixo */}
                       {item.quantity <= item.min_stock && (
                         <div className="flex items-center text-red-500 text-xs mt-1">
                           <AlertTriangle className="w-4 h-4 mr-1" />
