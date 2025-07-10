@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Plus, Edit2, Trash2, AlertTriangle, Search } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, AlertTriangle, Search, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,18 @@ import StockAlerts from '@/components/StockAlerts';
 import StockControl from '@/components/StockControl';
 
 const Estoque = () => {
-  const { stockItems, createStockItem, updateStockItem, deleteStockItem, loading } = useStock();
+  const { 
+    stockItems, 
+    createStockItem, 
+    updateStockItem, 
+    deleteStockItem, 
+    loading,
+    calculateReservedValue,
+    calculateAvailableValue,
+    calculateTotalStockValue,
+    formatCurrency
+  } = useStock();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todas');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,7 +45,7 @@ const Estoque = () => {
   const filteredItems = stockItems.filter(item => {
     const searchRegex = new RegExp(searchTerm, 'i');
     const categoryMatch = selectedCategory === 'todas' || item.category === selectedCategory;
-    return searchRegex.test(item.name) && categoryMatch;
+    return (searchRegex.test(item.name) || searchRegex.test(item.code || '')) && categoryMatch;
   });
 
   const categories = ['todas', ...new Set(stockItems.map(item => item.category))];
@@ -98,24 +109,17 @@ const Estoque = () => {
     await deleteStockItem(id);
   };
 
-  // Função para formatar valores em Real
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  // Função para calcular valor total
-  const calculateTotalValue = (quantity: number, cost: number) => {
-    return quantity * cost;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">📦 Controle de Estoque</h2>
         <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-lg border">
+            <DollarSign className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-medium text-green-800">
+              Valor Total: {formatCurrency(calculateTotalStockValue())}
+            </span>
+          </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center space-x-2">
@@ -281,7 +285,7 @@ const Estoque = () => {
             <Search className="w-5 h-5 text-gray-500" />
             <Input
               type="text"
-              placeholder="Buscar item..."
+              placeholder="Buscar item por nome ou código..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="bg-gray-50 border-none focus:ring-0 shadow-none"
@@ -316,78 +320,92 @@ const Estoque = () => {
               filteredItems.map(item => (
                 <motion.div
                   key={item.id}
-                  className="bg-gray-50 rounded-lg p-4"
+                  className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-800">{item.name}</h3>
-                      {item.code && <p className="text-sm text-gray-600">Código: {item.code}</p>}
-                      <p className="text-sm text-gray-600">Categoria: {item.category}</p>
-                      <p className="text-sm text-gray-600">Unidade: {item.unit}</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-medium text-gray-800">{item.name}</h3>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDialog(item)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(item.id)}
+                            className="text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
                       
-                      {/* Custos e Valores */}
-                      {item.average_cost && (
-                        <p className="text-sm text-gray-600">
-                          Custo Médio: {formatCurrency(item.average_cost)}
-                        </p>
-                      )}
-                      {item.selling_price && (
-                        <p className="text-sm text-gray-600">
-                          Vl. Venda: {formatCurrency(item.selling_price)}
-                        </p>
-                      )}
-                      
+                      {/* Informações básicas */}
+                      <div className="space-y-1 text-sm text-gray-600 mb-3">
+                        {item.code && <p><strong>Código:</strong> {item.code}</p>}
+                        <p><strong>Categoria:</strong> {item.category}</p>
+                        <p><strong>Unidade:</strong> {item.unit}</p>
+                      </div>
+
+                      {/* Custos e valores */}
+                      <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                        {item.average_cost > 0 && (
+                          <div className="bg-blue-50 p-2 rounded">
+                            <p className="text-blue-700 font-medium">Custo Médio</p>
+                            <p className="text-blue-800">{formatCurrency(item.average_cost)}</p>
+                          </div>
+                        )}
+                        {item.selling_price > 0 && (
+                          <div className="bg-green-50 p-2 rounded">
+                            <p className="text-green-700 font-medium">Vl. Venda</p>
+                            <p className="text-green-800">{formatCurrency(item.selling_price)}</p>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Estoques */}
-                      {item.reserved_stock && (
-                        <div className="text-sm text-gray-600 mt-2">
-                          <p>Est. Reservado: {item.reserved_stock} {item.unit}</p>
-                          {item.average_cost && (
-                            <p className="text-green-600 font-medium">
-                              Valor Reservado: {formatCurrency(calculateTotalValue(item.reserved_stock, item.average_cost))}
+                      <div className="space-y-2 text-xs">
+                        {item.reserved_stock > 0 && (
+                          <div className="bg-yellow-50 p-2 rounded border-l-2 border-yellow-400">
+                            <p className="text-yellow-700 font-medium">
+                              Estoque Reservado: {item.reserved_stock} {item.unit}
                             </p>
-                          )}
-                        </div>
-                      )}
-                      
-                      {item.available_stock && (
-                        <div className="text-sm text-gray-600 mt-2">
-                          <p>Est. Disponível: {item.available_stock} {item.unit}</p>
-                          {item.average_cost && (
-                            <p className="text-blue-600 font-medium">
-                              Valor Disponível: {formatCurrency(calculateTotalValue(item.available_stock, item.average_cost))}
+                            {item.average_cost > 0 && (
+                              <p className="text-yellow-800 font-bold">
+                                Valor: {formatCurrency(calculateReservedValue(item))}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {item.available_stock > 0 && (
+                          <div className="bg-green-50 p-2 rounded border-l-2 border-green-400">
+                            <p className="text-green-700 font-medium">
+                              Estoque Disponível: {item.available_stock} {item.unit}
                             </p>
-                          )}
-                        </div>
-                      )}
+                            {item.average_cost > 0 && (
+                              <p className="text-green-800 font-bold">
+                                Valor: {formatCurrency(calculateAvailableValue(item))}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Alerta de estoque baixo */}
-                      {item.quantity <= item.min_stock && (
-                        <div className="flex items-center text-red-500 text-xs mt-1">
+                      {(item.available_stock + item.reserved_stock) <= item.min_stock && (
+                        <div className="flex items-center text-red-500 text-xs mt-2 bg-red-50 p-2 rounded">
                           <AlertTriangle className="w-4 h-4 mr-1" />
-                          Estoque abaixo do mínimo!
+                          Estoque abaixo do mínimo ({item.min_stock} {item.unit})!
                         </div>
                       )}
-                    </div>
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(item)}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(item.id)}
-                          className="text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
                   

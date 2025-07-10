@@ -23,6 +23,18 @@ export interface HerdAnimal {
   del_average?: number;
 }
 
+// Mapeamento de fases para facilitar o uso
+export const ANIMAL_PHASES = [
+  'bezerro',
+  'bezerra',
+  'garrote', 
+  'novilha',
+  'boi',
+  'vaca_lactante',
+  'vaca_seca',
+  'touro'
+] as const;
+
 export const useHerd = () => {
   const [herd, setHerd] = useState<HerdAnimal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,12 +75,14 @@ export const useHerd = () => {
     if (!user) return;
 
     try {
+      console.log('Adding animal with data:', animalData);
+      
       const { data, error } = await supabase
         .from('animals')
         .insert([{
           tag: animalData.tag,
           name: animalData.name || null,
-          phase: animalData.reproductive_status || animalData.phase,
+          phase: animalData.phase,
           birth_date: animalData.birth_date,
           user_id: user.id
         }])
@@ -77,7 +91,7 @@ export const useHerd = () => {
 
       if (error) {
         console.error('Error adding animal:', error);
-        toast.error('Erro ao cadastrar animal');
+        toast.error('Erro ao cadastrar animal: ' + error.message);
         return;
       }
 
@@ -104,7 +118,7 @@ export const useHerd = () => {
         .update({
           tag: animalData.tag,
           name: animalData.name,
-          phase: animalData.reproductive_status || animalData.phase,
+          phase: animalData.phase,
           birth_date: animalData.birth_date,
         })
         .eq('id', id)
@@ -162,13 +176,17 @@ export const useHerd = () => {
     if (!user) return;
 
     try {
+      console.log('Importing animals:', animals);
+      
       const animalsWithUserId = animals.map(animal => ({
         tag: animal.tag,
         name: animal.name || null,
-        phase: animal.reproductive_status || animal.phase,
+        phase: animal.phase,
         birth_date: animal.birth_date,
         user_id: user.id
       }));
+
+      console.log('Animals to insert:', animalsWithUserId);
 
       const { data, error } = await supabase
         .from('animals')
@@ -177,7 +195,7 @@ export const useHerd = () => {
 
       if (error) {
         console.error('Error importing animals:', error);
-        toast.error('Erro ao importar animais');
+        toast.error('Erro ao importar animais: ' + error.message);
         return;
       }
 

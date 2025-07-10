@@ -265,34 +265,49 @@ export type Database = {
       }
       stock_items: {
         Row: {
+          available_stock: number | null
+          average_cost: number | null
           category: string
+          code: string | null
           created_at: string
           id: string
           min_stock: number
           name: string
           quantity: number
+          reserved_stock: number | null
+          selling_price: number | null
           unit: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          available_stock?: number | null
+          average_cost?: number | null
           category?: string
+          code?: string | null
           created_at?: string
           id?: string
           min_stock?: number
           name: string
           quantity?: number
+          reserved_stock?: number | null
+          selling_price?: number | null
           unit?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          available_stock?: number | null
+          average_cost?: number | null
           category?: string
+          code?: string | null
           created_at?: string
           id?: string
           min_stock?: number
           name?: string
           quantity?: number
+          reserved_stock?: number | null
+          selling_price?: number | null
           unit?: string
           updated_at?: string
           user_id?: string

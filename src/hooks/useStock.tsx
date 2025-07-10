@@ -41,7 +41,17 @@ export const useStock = () => {
         return;
       }
 
-      setStockItems(data || []);
+      // Transformar os dados para garantir que todos os campos estejam presentes
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        code: item.code || '',
+        average_cost: item.average_cost || 0,
+        selling_price: item.selling_price || 0,
+        reserved_stock: item.reserved_stock || 0,
+        available_stock: item.available_stock || 0,
+      }));
+
+      setStockItems(transformedData);
     } catch (error) {
       console.error('Error fetching stock:', error);
     } finally {
@@ -53,12 +63,24 @@ export const useStock = () => {
     if (!user) return;
 
     try {
+      // Garantir que todos os campos estejam presentes
+      const completeItemData = {
+        name: itemData.name,
+        code: itemData.code || '',
+        quantity: itemData.quantity || 0,
+        unit: itemData.unit || 'kg',
+        min_stock: itemData.min_stock || 0,
+        category: itemData.category || 'Geral',
+        average_cost: itemData.average_cost || 0,
+        selling_price: itemData.selling_price || 0,
+        reserved_stock: itemData.reserved_stock || 0,
+        available_stock: itemData.available_stock || 0,
+        user_id: user.id
+      };
+
       const { data, error } = await supabase
         .from('stock_items')
-        .insert([{
-          ...itemData,
-          user_id: user.id
-        }])
+        .insert([completeItemData])
         .select()
         .single();
 
@@ -121,6 +143,28 @@ export const useStock = () => {
     }
   };
 
+  // Funções utilitárias para cálculos
+  const calculateReservedValue = (item: StockItem) => {
+    return (item.reserved_stock || 0) * (item.average_cost || 0);
+  };
+
+  const calculateAvailableValue = (item: StockItem) => {
+    return (item.available_stock || 0) * (item.average_cost || 0);
+  };
+
+  const calculateTotalStockValue = () => {
+    return stockItems.reduce((total, item) => {
+      return total + calculateReservedValue(item) + calculateAvailableValue(item);
+    }, 0);
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
   useEffect(() => {
     fetchStock();
   }, [user]);
@@ -131,6 +175,10 @@ export const useStock = () => {
     createStockItem,
     updateStockItem,
     deleteStockItem,
+    calculateReservedValue,
+    calculateAvailableValue,
+    calculateTotalStockValue,
+    formatCurrency,
     refetch: fetchStock
   };
 };
