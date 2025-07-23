@@ -4,6 +4,16 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Filter, RefreshCw } from 'lucide-react';
 import { useCommodities } from '@/hooks/useCommodities';
 import { Button } from '@/components/ui/button';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
 
 const Commodities = () => {
   const [selectedProduct, setSelectedProduct] = useState('todos');
@@ -94,7 +104,7 @@ const Commodities = () => {
         ))}
       </div>
 
-      {/* Price History Chart - ALTERADO PARA MENSAL */}
+      {/* Interactive Price History Chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -103,85 +113,113 @@ const Commodities = () => {
       >
         <h3 className="text-lg font-semibold text-gray-800 mb-6">Evolução dos Preços (Últimos 30 dias)</h3>
         
-        <div className="space-y-4">
-          {/* Simple Chart Visualization - Mensal */}
-          <div className="grid grid-cols-10 gap-2">
-            {history.slice(-10).map((day, index) => (
-              <div key={day.date} className="text-center">
-                <p className="text-xs font-medium text-gray-600 mb-2">
-                  {new Date(day.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                </p>
+        {history.length > 0 ? (
+          <div className="w-full h-96">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#666"
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                  }}
+                />
+                <YAxis stroke="#666" tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #ddd', 
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  labelFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric' 
+                    });
+                  }}
+                  formatter={(value: number, name: string) => {
+                    const formatters = {
+                      soja: (val: number) => [`R$ ${val.toFixed(2)}`, 'Soja (saca 60kg)'],
+                      milho: (val: number) => [`R$ ${val.toFixed(2)}`, 'Milho (saca 60kg)'],
+                      leite: (val: number) => [`R$ ${val.toFixed(4)}`, 'Leite (litro)'],
+                      boiGordo: (val: number) => [`R$ ${val.toFixed(2)}`, 'Boi Gordo (@)'],
+                      dolar: (val: number) => [`R$ ${val.toFixed(2)}`, 'Dólar (USD/BRL)']
+                    };
+                    return formatters[name as keyof typeof formatters]?.(value) || [`${value}`, name];
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  iconType="line"
+                  wrapperStyle={{ paddingTop: '20px' }}
+                />
                 
-                {/* Chart bars */}
-                <div className="space-y-2">
-                  <div className="bg-green-100 rounded-lg p-2">
-                    <div 
-                      className="bg-green-500 rounded-sm mx-auto"
-                      style={{ 
-                        height: `${Math.max(20, (day.soja / 160) * 60)}px`,
-                        width: '6px'
-                      }}
-                    ></div>
-                    <p className="text-xs text-green-700 mt-1">{day.soja.toFixed(0)}</p>
-                  </div>
-                  
-                  <div className="bg-yellow-100 rounded-lg p-2">
-                    <div 
-                      className="bg-yellow-500 rounded-sm mx-auto"
-                      style={{ 
-                        height: `${Math.max(20, (day.milho / 95) * 60)}px`,
-                        width: '6px'
-                      }}
-                    ></div>
-                    <p className="text-xs text-yellow-700 mt-1">{day.milho.toFixed(0)}</p>
-                  </div>
-                  
-                  <div className="bg-blue-100 rounded-lg p-2">
-                    <div 
-                      className="bg-blue-500 rounded-sm mx-auto"
-                      style={{ 
-                        height: `${Math.max(20, (day.leite / 2.8) * 60)}px`,
-                        width: '6px'
-                      }}
-                    ></div>
-                    <p className="text-xs text-blue-700 mt-1">{day.leite.toFixed(2)}</p>
-                  </div>
-
-                  <div className="bg-purple-100 rounded-lg p-2">
-                    <div 
-                      className="bg-purple-500 rounded-sm mx-auto"
-                      style={{ 
-                        height: `${Math.max(20, (day.dolar / 6) * 60)}px`,
-                        width: '6px'
-                      }}
-                    ></div>
-                    <p className="text-xs text-purple-700 mt-1">{day.dolar.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+                <Line 
+                  type="monotone" 
+                  dataKey="soja" 
+                  stroke="#22c55e" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#22c55e' }}
+                  name="soja"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="milho" 
+                  stroke="#eab308" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#eab308' }}
+                  name="milho"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="leite" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#3b82f6' }}
+                  name="leite"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="boiGordo" 
+                  stroke="#8b5cf6" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#8b5cf6' }}
+                  name="boiGordo"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="dolar" 
+                  stroke="#f59e0b" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#f59e0b' }}
+                  name="dolar"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          
-          {/* Legend */}
-          <div className="flex justify-center space-x-6 pt-4 border-t border-gray-100">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
-              <span className="text-sm text-gray-600">Soja</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-yellow-500 rounded-sm"></div>
-              <span className="text-sm text-gray-600">Milho</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-              <span className="text-sm text-gray-600">Leite</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-purple-500 rounded-sm"></div>
-              <span className="text-sm text-gray-600">Dólar</span>
+        ) : (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando dados históricos...</p>
             </div>
           </div>
-        </div>
+        )}
       </motion.div>
 
       {/* Market Analysis */}
