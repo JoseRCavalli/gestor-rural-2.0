@@ -25,7 +25,7 @@ serve(async (req) => {
         lastUpdate: new Date().toISOString()
       },
       milho: {
-        price: 63.44, // Editar manualmente
+        price: 64.02, // Editar manualmente
         unit: 'saca 60kg',
         change: -5.34, // Editar manualmente
         trend: -0.5 >= 0 ? 'up' : 'down', // Automatically calculated based on change
