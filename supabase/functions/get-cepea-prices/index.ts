@@ -27,7 +27,7 @@ serve(async (req) => {
       milho: {
         price: 64.02, // Editar manualmente
         unit: 'saca 60kg',
-        change: 0.91, // Editar manualmente
+        change: 0.911, // Editar manualmente
         trend: -0.5 >= 0 ? 'up' : 'down', // Automatically calculated based on change
         source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
