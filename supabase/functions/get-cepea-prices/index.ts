@@ -17,7 +17,7 @@ serve(async (req) => {
     // PREÇOS ATUAIS - EDITAR APENAS ESTES VALORES
     const currentPrices = {
       soja: 129.04,    // EDITAR AQUI: preço atual da soja
-      milho: 64.02,    // EDITAR AQUI: preço atual do milho  
+      milho: 64.022,    // EDITAR AQUI: preço atual do milho  
       leite: 2.4099    // EDITAR AQUI: preço atual do leite
     };
 
