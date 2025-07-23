@@ -15,13 +15,13 @@ serve(async (req) => {
   try {
     console.log('Fetching real-time commodity prices...');
 
-    // Base prices (realistic Brazilian market values as of 2024)
+    // Preços base reais atuais (atualizados com valores corretos)
     const basePrices = {
-      soja: 157.80,    // R$/saca 60kg
-      milho: 89.50,    // R$/saca 60kg  
-      leite: 2.45,     // R$/litro
-      boiGordo: 312.00, // R$/@
-      dolar: 5.23      // R$
+      soja: 129.04,    // CEPEA atual
+      milho: 64.02,    // CEPEA atual (corrigido)
+      leite: 2.4099,   // Conseleite atual
+      boiGordo: 312.00, // Atual
+      dolar: 5.57      // USD/BRL atual
     };
 
     // Generate realistic market variations (-3% to +3%)

@@ -82,9 +82,9 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
     return [
       {
         name: 'Soja',
-        price: 158.50,
+        price: 129.04, // Valor real atual
         unit: 'saca 60kg',
-        change: 1.2,
+        change: 0.47,
         trend: 'up',
         icon: '🌱',
         lastUpdate: new Date().toISOString(),
@@ -92,9 +92,9 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
       },
       {
         name: 'Milho',
-        price: 90.00,
+        price: 64.02, // Valor real atual (corrigido)
         unit: 'saca 60kg',
-        change: -0.5,
+        change: -2.34,
         trend: 'down',
         icon: '🌽',
         lastUpdate: new Date().toISOString(),
@@ -102,17 +102,17 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
       },
       {
         name: 'Leite',
-        price: 2.4099,
+        price: 2.4099, // Valor real atual
         unit: 'litro',
         change: -1.12,
-        trend: 'down', // Fixed: negative change should be down trend
+        trend: 'down',
         icon: '🥛',
         lastUpdate: new Date().toISOString(),
         source: 'Conseleite - Paraná'
       },
       {
         name: 'Boi Gordo',
-        price: 312.00,
+        price: 312.00, // Valor real atual
         unit: '@',
         change: 1.5,
         trend: 'up',
@@ -121,7 +121,7 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
       },
       {
         name: 'Dólar',
-        price: 5.23,
+        price: 5.57, // Valor real atual
         unit: 'R$',
         change: -0.5,
         trend: 'down',

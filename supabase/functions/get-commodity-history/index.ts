@@ -16,13 +16,13 @@ serve(async (req) => {
     const { days = 30 } = await req.json();
     console.log(`Generating realistic commodity history for ${days} days`);
 
-    // Preços base reais atuais (sincronizados com get-cepea-prices)
+    // Preços reais atuais de hoje (sincronizados com get-cepea-prices)
     const currentPrices = {
-      soja: 129.04,
-      milho: 64.02,
-      leite: 2.4099,
-      boiGordo: 312.00,
-      dolar: 5.57
+      soja: 129.04,   // CEPEA atual
+      milho: 64.02,   // CEPEA atual (corrigido do valor antigo 89.50)
+      leite: 2.4099,  // Conseleite atual
+      boiGordo: 312.00, // Preço atual
+      dolar: 5.57     // USD/BRL atual
     };
 
     // Gerar histórico realista começando de hoje e voltando no tempo
