@@ -12,35 +12,54 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Fetching CEPEA prices with manual values...');
+    console.log('Fetching CEPEA prices with automatic percentage calculation...');
 
-    // Valores médios fixos - EDITÁVEIS MANUALMENTE A CADA MÊS
-    const sojaChange = 0.47; // EDITAR AQUI: percentual de mudança da soja
-    const milhoChange = -2.34; // EDITAR AQUI: percentual de mudança do milho  
-    const leiteChange = -1.12; // EDITAR AQUI: percentual de mudança do leite
+    // PREÇOS ATUAIS - EDITAR APENAS ESTES VALORES
+    const currentPrices = {
+      soja: 129.04,    // EDITAR AQUI: preço atual da soja
+      milho: 64.02,    // EDITAR AQUI: preço atual do milho  
+      leite: 2.4099    // EDITAR AQUI: preço atual do leite
+    };
+
+    // PREÇOS ANTERIORES (para calcular percentual) - EDITAR quando atualizar os preços
+    const previousPrices = {
+      soja: 128.43,    // EDITAR AQUI: preço anterior da soja
+      milho: 65.52,    // EDITAR AQUI: preço anterior do milho
+      leite: 2.437     // EDITAR AQUI: preço anterior do leite
+    };
+
+    // Função para calcular percentual de mudança
+    const calculateChange = (current: number, previous: number): number => {
+      return ((current - previous) / previous) * 100;
+    };
+
+    // Calcular mudanças automaticamente
+    const sojaChange = calculateChange(currentPrices.soja, previousPrices.soja);
+    const milhoChange = calculateChange(currentPrices.milho, previousPrices.milho);
+    const leiteChange = calculateChange(currentPrices.leite, previousPrices.leite);
 
     const cepeaPrices = {
       soja: {
-        price: 129.04, // EDITAR AQUI: preço da soja
+        price: currentPrices.soja,
         unit: 'saca 60kg',
-        change: sojaChange,
-        trend: sojaChange >= 0 ? 'up' : 'down', // Calculado automaticamente
+        change: parseFloat(sojaChange.toFixed(2)),
+        trend: sojaChange >= 0 ? 'up' : 'down',
         source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       },
       milho: {
-        price: 64.02, // EDITAR AQUI: preço do milho
+        price: currentPrices.milho,
         unit: 'saca 60kg',
-        change: milhoChange,
-        trend: milhoChange >= 0 ? 'up' : 'down', // Calculado automaticamente
+        change: parseFloat(milhoChange.toFixed(2)),
+        trend: milhoChange >= 0 ? 'up' : 'down',
         source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       },
       leite: {
-        price: 2.4099, // EDITAR AQUI: preço do leite
+        price: currentPrices.leite,
         unit: 'litro',
-        change: leiteChange,
-        trend: leiteChange >= 0 ? 'up' : 'down', // Calculado automaticamente
+        change: parseFloat(leiteChange.toFixed(2)),
+        trend: leiteChange >= 0 ? 'up' : 'down',
         source: 'Conseleite - Paraná (Junho)',
         lastUpdate: new Date().toISOString()
       }
