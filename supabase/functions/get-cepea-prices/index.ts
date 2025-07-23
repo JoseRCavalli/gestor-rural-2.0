@@ -15,29 +15,33 @@ serve(async (req) => {
     console.log('Fetching CEPEA prices with manual values...');
 
     // Valores médios fixos - EDITÁVEIS MANUALMENTE A CADA MÊS
+    const sojaChange = 0.47; // EDITAR AQUI: percentual de mudança da soja
+    const milhoChange = -2.34; // EDITAR AQUI: percentual de mudança do milho  
+    const leiteChange = -1.12; // EDITAR AQUI: percentual de mudança do leite
+
     const cepeaPrices = {
       soja: {
-        price: 129.04, // Editar manualmente
+        price: 129.04, // EDITAR AQUI: preço da soja
         unit: 'saca 60kg',
-        change: 0.47, // Editar manualmente
-        trend: 1.2 >= 0 ? 'up' : 'down', // Automatically calculated based on change
+        change: sojaChange,
+        trend: sojaChange >= 0 ? 'up' : 'down', // Calculado automaticamente
         source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       },
       milho: {
-        price: 64.02, // Editar manualmente
+        price: 64.02, // EDITAR AQUI: preço do milho
         unit: 'saca 60kg',
-        change: 0.911, // Editar manualmente
-        trend: -0.5 >= 0 ? 'up' : 'down', // Automatically calculated based on change
+        change: milhoChange,
+        trend: milhoChange >= 0 ? 'up' : 'down', // Calculado automaticamente
         source: 'CEPEA - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       },
       leite: {
-        price: 2.4099, // Editar manualmente
+        price: 2.4099, // EDITAR AQUI: preço do leite
         unit: 'litro',
-        change: -1.12, // Editar manualmente
-        trend: -1.12 >= 0 ? 'up' : 'down', // Automatically calculated based on change
-        source: 'Conseleite - Paraná (Junho)', // Fonte alterada conforme solicitado
+        change: leiteChange,
+        trend: leiteChange >= 0 ? 'up' : 'down', // Calculado automaticamente
+        source: 'Conseleite - Paraná (Junho)',
         lastUpdate: new Date().toISOString()
       }
     };
