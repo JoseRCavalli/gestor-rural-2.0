@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {mapRawToImportPreview} from "@/lib/mappers/stock/mapRawToImportPreview.ts";
+import { mapRawToImportPreview } from "@/lib/mappers/stock/mapRawToImportPreview.ts";
 
 export interface ImportPreview {
   name: string;

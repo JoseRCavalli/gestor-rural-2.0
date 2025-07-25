@@ -11,6 +11,7 @@ import { useStock } from '@/hooks/useStock';
 import StockImporter from '@/components/StockImporter';
 import StockAlerts from '@/components/StockAlerts';
 import StockControl from '@/components/StockControl';
+import {useNavigate} from "react-router-dom";
 
 const Estoque = () => {
   const { 
@@ -24,7 +25,8 @@ const Estoque = () => {
     calculateTotalStockValue,
     formatCurrency
   } = useStock();
-  
+
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todas');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -272,7 +274,7 @@ const Estoque = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <StockImporter onImportComplete={() => window.location.reload()} />
+        <StockImporter onImportComplete={() => navigate('/dashboard')} />
       </motion.div>
 
       <motion.div
