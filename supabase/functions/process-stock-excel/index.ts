@@ -1,5 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import * as XLSX from 'xlsx';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,8 +53,19 @@ serve(async (req) => {
 
     let extractedData: string[][] = [];
 
-    // Process CSV files
-    if (file_name.toLowerCase().endsWith('.csv')) {
+    if (file_name.toLowerCase().endsWith('.xlsx') || file_name.toLowerCase().endsWith('.xls')) {
+      console.log('Processing Excel file');
+
+      // Ler arquivo como workbook (a partir de buffer base64 decodificado)
+      const workbook = XLSX.read(fileBytes, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // Converte a planilha em matriz de arrays (linhas e colunas)
+      extractedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    }
+
+    else if (file_name.toLowerCase().endsWith('.csv')) {
       console.log('Processing CSV file');
       const textContent = new TextDecoder('utf-8').decode(fileBytes);
       const lines = textContent.split(/\r?\n/).filter(line => line.trim());
@@ -77,21 +89,7 @@ serve(async (req) => {
       });
     }
     // For Excel files, we need to use a more sophisticated approach
-    else if (file_name.toLowerCase().endsWith('.xlsx') || file_name.toLowerCase().endsWith('.xls')) {
-      console.log('Processing Excel file');
-      
-      // For now, we'll provide example data and suggest the user to convert to CSV
-      return new Response(
-        JSON.stringify({ 
-          error: 'Para arquivos Excel, por favor converta para CSV primeiro. Em breve suportaremos Excel diretamente.',
-          suggestion: 'Abra seu arquivo Excel, vá em Arquivo > Salvar Como > CSV (separado por vírgulas)'
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    } else {
+     else {
       return new Response(
         JSON.stringify({ error: 'Formato de arquivo não suportado. Use CSV (.csv)' }),
         { 

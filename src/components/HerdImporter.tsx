@@ -56,6 +56,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
         
         // Convert to array of arrays
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        console.log(jsonData)
         dataLines = jsonData as string[][];
         
         console.log('Excel data processed:', dataLines.length, 'rows');

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
@@ -22,27 +21,27 @@ export interface StockItem {
 }
 
 export const useStock = () => {
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const fetchStock = async () => {
-    if (!user) return;
-    
-    try {
+  const {
+    data: stockItems = [],
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ['stock_items', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
       const { data, error } = await supabase
-        .from('stock_items')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name', { ascending: true });
+          .from('stock_items')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching stock:', error);
-        return;
-      }
+      if (error) throw new Error(error.message);
 
-      // Transformar os dados para garantir que todos os campos estejam presentes
-      const transformedData = (data || []).map(item => ({
+      return (data || []).map(item => ({
         ...item,
         code: item.code || '',
         average_cost: item.average_cost || 0,
@@ -50,22 +49,18 @@ export const useStock = () => {
         reserved_stock: item.reserved_stock || 0,
         available_stock: item.available_stock || 0,
       }));
+    },
+    enabled: !!user, // só executa se o usuário existir
+  });
 
-      setStockItems(transformedData);
-    } catch (error) {
-      console.error('Error fetching stock:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createMutation = useMutation({
+    mutationFn: async (
+        itemData: Omit<StockItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+    ) => {
+      if (!user) return;
 
-  const createStockItem = async (itemData: Omit<StockItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return;
-
-    try {
-      // Garantir que todos os campos estejam presentes
       const completeItemData = {
-        name: itemData.name,
+        ...itemData,
         code: itemData.code || '',
         quantity: itemData.quantity || 0,
         unit: itemData.unit || 'kg',
@@ -75,110 +70,90 @@ export const useStock = () => {
         selling_price: itemData.selling_price || 0,
         reserved_stock: itemData.reserved_stock || 0,
         available_stock: itemData.available_stock || 0,
-        user_id: user.id
+        user_id: user.id,
       };
 
       const { data, error } = await supabase
-        .from('stock_items')
-        .insert([completeItemData])
-        .select()
-        .single();
+          .from('stock_items')
+          .insert([completeItemData])
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error creating stock item:', error);
-        toast.error('Erro ao criar item do estoque');
-        return;
-      }
-
-      setStockItems(prev => [...prev, data]);
-      toast.success('Item adicionado ao estoque!');
+      if (error) throw new Error(error.message);
       return data;
-    } catch (error) {
-      console.error('Error creating stock item:', error);
+    },
+    onSuccess: async (data) => {
+      toast.success('Item adicionado ao estoque!');
+      await queryClient.invalidateQueries({ queryKey: ['stock_items', user?.id] });
+    },
+    onError: () => {
       toast.error('Erro ao criar item do estoque');
-    }
-  };
+    },
+  });
 
-  const updateStockItem = async (id: string, updates: Partial<StockItem>) => {
-    try {
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<StockItem> }) => {
       const { data, error } = await supabase
-        .from('stock_items')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+          .from('stock_items')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error updating stock item:', error);
-        toast.error('Erro ao atualizar item do estoque');
-        return;
-      }
-
-      setStockItems(prev => prev.map(item => item.id === id ? data : item));
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: async () => {
       toast.success('Item atualizado com sucesso!');
-    } catch (error) {
-      console.error('Error updating stock item:', error);
+      await queryClient.invalidateQueries({ queryKey: ['stock_items', user?.id] });
+    },
+    onError: () => {
       toast.error('Erro ao atualizar item do estoque');
-    }
-  };
+    },
+  });
 
-  const deleteStockItem = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('stock_items')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting stock item:', error);
-        toast.error('Erro ao deletar item do estoque');
-        return;
-      }
-
-      setStockItems(prev => prev.filter(item => item.id !== id));
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('stock_items').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: async () => {
       toast.success('Item removido do estoque!');
-    } catch (error) {
-      console.error('Error deleting stock item:', error);
+      await queryClient.invalidateQueries({ queryKey: ['stock_items', user?.id] });
+    },
+    onError: () => {
       toast.error('Erro ao deletar item do estoque');
-    }
-  };
+    },
+  });
 
-  // Funções utilitárias para cálculos
-  const calculateReservedValue = (item: StockItem) => {
-    return (item.reserved_stock || 0) * (item.average_cost || 0);
-  };
+  const calculateReservedValue = (item: StockItem) =>
+      (item.reserved_stock || 0) * (item.average_cost || 0);
 
-  const calculateAvailableValue = (item: StockItem) => {
-    return (item.available_stock || 0) * (item.average_cost || 0);
-  };
+  const calculateAvailableValue = (item: StockItem) =>
+      (item.available_stock || 0) * (item.average_cost || 0);
 
-  const calculateTotalStockValue = () => {
-    return stockItems.reduce((total, item) => {
-      return total + calculateReservedValue(item) + calculateAvailableValue(item);
-    }, 0);
-  };
+  const calculateTotalStockValue = () =>
+      stockItems.reduce((total, item) => {
+        return total + calculateReservedValue(item) + calculateAvailableValue(item);
+      }, 0);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  useEffect(() => {
-    fetchStock();
-  }, [user]);
+  const formatCurrency = (value: number) =>
+      new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(value);
 
   return {
     stockItems,
     loading,
-    createStockItem,
-    updateStockItem,
-    deleteStockItem,
+    refetch,
+    createStockItem: createMutation.mutateAsync,
+    updateStockItem: (id: string, updates: Partial<StockItem>) =>
+        updateMutation.mutateAsync({ id, updates }),
+    deleteStockItem: deleteMutation.mutateAsync,
     calculateReservedValue,
     calculateAvailableValue,
     calculateTotalStockValue,
     formatCurrency,
-    refetch: fetchStock
   };
 };
