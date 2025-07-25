@@ -11,7 +11,7 @@ import { useStock } from '@/hooks/useStock';
 import StockImporter from '@/components/StockImporter';
 import StockAlerts from '@/components/StockAlerts';
 import StockControl from '@/components/StockControl';
-import {useNavigate} from "react-router-dom";
+import {replace, useNavigate} from "react-router-dom";
 
 const Estoque = () => {
   const { 
@@ -23,7 +23,8 @@ const Estoque = () => {
     calculateReservedValue,
     calculateAvailableValue,
     calculateTotalStockValue,
-    formatCurrency
+    formatCurrency,
+    refetch,
   } = useStock();
 
   const navigate = useNavigate();
@@ -274,7 +275,7 @@ const Estoque = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <StockImporter onImportComplete={() => navigate('/dashboard')} />
+        <StockImporter onImportComplete={refetch} />
       </motion.div>
 
       <motion.div
