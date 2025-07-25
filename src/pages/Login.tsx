@@ -8,12 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {SupabaseErrorMessages} from "@/lib/exceptions/SupabaseErrorMessages.ts";
+import {AuthSessionMissingError} from "@supabase/auth-js/src/lib/errors.ts";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [lock, setLock] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,14 +29,16 @@ const Login = () => {
       });
 
       if (error) {
-        console.error('Login error:', error);
-        toast.error('Erro ao fazer login: ' + error.message);
+
+        // TO DO -> Throw To Many Requests cooldown
+        // ----------------------------------------
+
+        toast.error((SupabaseErrorMessages[error.code] || 'Ocorreu um erro! Tente novamente mais tarde.'));
       } else {
         toast.success('Login realizado com sucesso!');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Erro ao fazer login');
+      toast.error('Ocorreu um erro! Tente novamente mais tarde.');
     } finally {
       setLoading(false);
     }
@@ -114,7 +119,7 @@ const Login = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || lock}>
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>

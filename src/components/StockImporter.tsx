@@ -9,8 +9,9 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {mapRawToImportPreview} from "@/lib/mappers/stock/mapRawToImportPreview.ts";
 
-interface ImportPreview {
+export interface ImportPreview {
   name: string;
   code?: string;
   quantity: number;
@@ -24,6 +25,20 @@ interface ImportPreview {
   valid: boolean;
   errors: string[];
 }
+
+
+export type RawPreview = {
+  name: string;
+  code?: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  min_stock?: number;
+  average_cost?: number;
+  selling_price?: number;
+  reserved_stock?: number;
+  available_stock?: number;
+};
 
 const StockImporter = ({ onImportComplete }: { onImportComplete: () => void }) => {
   const [file, setFile] = useState<File | null>(null);
@@ -77,7 +92,10 @@ const StockImporter = ({ onImportComplete }: { onImportComplete: () => void }) =
         return;
       }
 
-      setPreview(data.preview || []);
+      const dataPreview = data.preview as RawPreview[];
+      const previews = dataPreview.map((row: RawPreview) => mapRawToImportPreview(row));
+
+      setPreview(previews || []);
       setShowPreview(true);
       toast.success('Arquivo processado! Revise os dados antes de importar.');
     } catch (error) {

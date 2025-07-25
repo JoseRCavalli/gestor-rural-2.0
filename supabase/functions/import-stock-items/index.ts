@@ -36,7 +36,12 @@ serve(async (req) => {
     // Prepare items for insertion
     const itemsToInsert = items.map((item: any) => ({
       name: item.name,
+      code: item.code || null,
+      average_cost: item.average_cost || 0,
+      selling_price: item.selling_price || 0,
+      reserved_stock: item.reserved_stock || 0,
       quantity: Math.floor(item.quantity || 0),
+      available_stock: item.available_stock || 0,
       unit: item.unit || 'kg',
       category: item.category || 'Geral',
       min_stock: Math.floor(item.min_stock || 0),
