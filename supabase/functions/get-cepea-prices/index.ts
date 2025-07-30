@@ -60,7 +60,7 @@ serve(async (req) => {
         unit: 'litro',
         change: parseFloat(leiteChange.toFixed(2)),
         trend: leiteChange >= 0 ? 'up' : 'down',
-        source: 'Conseleite - Paraná (Junho)',
+        source: 'Conseleite - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       }
     };
