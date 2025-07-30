@@ -43,12 +43,11 @@ const StockControl = ({ item }: StockControlProps) => {
       ? item.quantity + amount 
       : Math.max(0, item.quantity - amount);
     
-    const costPerUnit = item.average_cost || 0;
+    // available_stock representa a quantidade disponível, não o valor
     const currentAvailableStock = item.available_stock || 0;
-    
     const newAvailableStock = type === 'add'
-      ? currentAvailableStock + costPerUnit
-      : Math.max(0, currentAvailableStock - costPerUnit);
+      ? currentAvailableStock + amount
+      : Math.max(0, currentAvailableStock - amount);
     
     await updateStockItem(item.id, { 
       quantity: newQuantity,
