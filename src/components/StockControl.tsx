@@ -43,12 +43,25 @@ const StockControl = ({ item }: StockControlProps) => {
       ? item.quantity + amount 
       : Math.max(0, item.quantity - amount);
     
-    await updateStockItem(item.id, { quantity: newQuantity });
+    const costPerUnit = item.average_cost || 0;
+    const currentAvailableValue = (item.available_stock || 0) / 100; // Converter de centavos para reais
+    const valueChange = amount * costPerUnit;
+    
+    const newAvailableValue = type === 'add'
+      ? currentAvailableValue + valueChange
+      : Math.max(0, currentAvailableValue - valueChange);
+    
+    const newAvailableStockCents = Math.round(newAvailableValue * 100); // Converter para centavos
+    
+    await updateStockItem(item.id, { 
+      quantity: newQuantity,
+      available_stock: newAvailableStockCents
+    });
     
     toast.success(
       type === 'add' 
-        ? `Adicionado ${amount} ${item.unit} ao estoque de ${item.name}`
-        : `Removido ${amount} ${item.unit} do estoque de ${item.name}`
+        ? `Adicionado ${amount} ${item.unit} ao estoque de ${item.name} (Valor: R$ ${valueChange.toFixed(2)})`
+        : `Removido ${amount} ${item.unit} do estoque de ${item.name} (Valor: R$ ${valueChange.toFixed(2)})`
     );
   };
 
