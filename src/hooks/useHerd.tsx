@@ -3,16 +3,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { Animal } from '@/types/database';
 
-export interface HerdAnimal {
-  id: string;
-  tag: string;
-  name: string | null;
-  phase: string;
-  birth_date: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
+export interface HerdAnimal extends Animal {
   // Additional fields we'll store in a JSON column or separate table later
   reproductive_status?: string;
   observations?: string;
@@ -56,10 +49,9 @@ export const useHerd = () => {
         return;
       }
 
-      // Transform the animals data to match our herd interface
       const herdData = (data || []).map(animal => ({
         ...animal,
-        reproductive_status: animal.phase, // Use phase as reproductive status for now
+        reproductive_status: animal.phase,
       }));
 
       setHerd(herdData);

@@ -2,23 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-
-export interface StockItem {
-  id: string;
-  name: string;
-  code?: string;
-  quantity: number;
-  unit: string;
-  min_stock: number;
-  category: string;
-  average_cost?: number;
-  selling_price?: number;
-  reserved_stock?: number;
-  available_stock?: number;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-}
+import { StockItem } from '@/types/database';
 
 export const useStock = () => {
   const { user } = useAuth();
@@ -40,17 +24,9 @@ export const useStock = () => {
           .order('name', { ascending: true });
 
       if (error) throw new Error(error.message);
-
-      return (data || []).map(item => ({
-        ...item,
-        code: item.code || '',
-        average_cost: item.average_cost || 0,
-        selling_price: item.selling_price || 0,
-        reserved_stock: item.reserved_stock || 0,
-        available_stock: item.available_stock || 0,
-      }));
+      return data || [];
     },
-    enabled: !!user, // só executa se o usuário existir
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
@@ -61,15 +37,6 @@ export const useStock = () => {
 
       const completeItemData = {
         ...itemData,
-        code: itemData.code || '',
-        quantity: itemData.quantity || 0,
-        unit: itemData.unit || 'kg',
-        min_stock: itemData.min_stock || 0,
-        category: itemData.category || 'Geral',
-        average_cost: itemData.average_cost || 0,
-        selling_price: itemData.selling_price || 0,
-        reserved_stock: itemData.reserved_stock || 0,
-        available_stock: itemData.available_stock || 0,
         user_id: user.id,
       };
 

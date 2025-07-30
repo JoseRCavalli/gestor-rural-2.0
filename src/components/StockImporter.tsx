@@ -129,7 +129,7 @@ const StockImporter = ({onImportComplete}: { onImportComplete: () => void }) => 
             return;
         }
 
-        setExistItems(existingItemsInStock.map(item => item.code));
+        setExistItems(existingItemsInStock.map(item => item.code || ''));
 
         if (existingItemsInStock.length > 0) {
             setShowOverwriteDialog(true);

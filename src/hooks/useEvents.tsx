@@ -3,20 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-
-export interface Event {
-  id: string;
-  user_id: string;
-  title: string;
-  description?: string;
-  date: string;
-  time: string;
-  type?: string;
-  icon?: string;
-  completed?: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { Event } from '@/types/database';
 
 export const useEvents = () => {
   const [events, setEvents] = useState<Event[]>([]);

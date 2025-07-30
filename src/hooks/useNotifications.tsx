@@ -3,29 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-
-export interface NotificationSettings {
-  id: string;
-  user_id: string;
-  whatsapp_notifications: boolean;
-  email_notifications: boolean;
-  weather_alerts: boolean;
-  stock_alerts: boolean;
-  alert_advance_minutes: number;
-  default_reminder_time: string;
-}
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'warning' | 'error' | 'success';
-  channel: 'app' | 'email' | 'whatsapp';
-  read: boolean;
-  sent_at: string | null;
-  created_at: string;
-}
+import { NotificationSettings, Notification } from '@/types/database';
 
 export const useNotifications = () => {
   const { user } = useAuth();
@@ -48,12 +26,7 @@ export const useNotifications = () => {
         return;
       }
 
-      // Type assertion to ensure proper typing
-      const typedNotifications = (data || []).map(notification => ({
-        ...notification,
-        type: notification.type as 'info' | 'warning' | 'error' | 'success',
-        channel: notification.channel as 'app' | 'email' | 'whatsapp'
-      }));
+      const typedNotifications = data || [];
 
       setNotifications(typedNotifications);
     } catch (error) {
@@ -169,11 +142,7 @@ export const useNotifications = () => {
         return;
       }
 
-      const typedNotification = {
-        ...data,
-        type: data.type as 'info' | 'warning' | 'error' | 'success',
-        channel: data.channel as 'app' | 'email' | 'whatsapp'
-      };
+      const typedNotification = data;
 
       setNotifications(prev => [typedNotification, ...prev]);
       return typedNotification;
