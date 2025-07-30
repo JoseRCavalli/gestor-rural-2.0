@@ -33,6 +33,8 @@ const StockControl = ({ item }: StockControlProps) => {
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [adjustQuantity, setAdjustQuantity] = useState(1);
   const [adjustType, setAdjustType] = useState<'add' | 'remove'>('add');
+  const [isEditingMinStock, setIsEditingMinStock] = useState(false);
+  const [minStockValue, setMinStockValue] = useState(item.min_stock);
 
   const handleQuickAdjust = async (type: 'add' | 'remove', amount: number = 1) => {
     const newQuantity = type === 'add' 
@@ -59,6 +61,17 @@ const StockControl = ({ item }: StockControlProps) => {
     setAdjustQuantity(1);
   };
 
+  const handleMinStockUpdate = async () => {
+    if (minStockValue < 0) {
+      toast.error('Estoque mínimo deve ser maior ou igual a zero');
+      return;
+    }
+
+    await updateStockItem(item.id, { min_stock: minStockValue });
+    setIsEditingMinStock(false);
+    toast.success(`Estoque mínimo de ${item.name} atualizado para ${minStockValue} ${item.unit}`);
+  };
+
   return (
     <div className="flex items-center space-x-2">
       {/* Botões de ajuste rápido */}
@@ -80,6 +93,54 @@ const StockControl = ({ item }: StockControlProps) => {
       >
         <Plus className="w-3 h-3" />
       </Button>
+
+      {/* Botão para editar estoque mínimo */}
+      <Dialog open={isEditingMinStock} onOpenChange={setIsEditingMinStock}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="text-xs">
+            Min: {item.min_stock}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Estoque Mínimo</DialogTitle>
+            <DialogDescription>
+              Defina o estoque mínimo para {item.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="minStock">Estoque Mínimo ({item.unit})</Label>
+              <Input
+                id="minStock"
+                type="number"
+                min="0"
+                value={minStockValue}
+                onChange={(e) => setMinStockValue(parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+              <p>
+                <strong>Estoque atual:</strong> {item.quantity} {item.unit}
+              </p>
+              <p>
+                <strong>Estoque mínimo atual:</strong> {item.min_stock} {item.unit}
+              </p>
+              <p>
+                <strong>Novo estoque mínimo:</strong> {minStockValue} {item.unit}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsEditingMinStock(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleMinStockUpdate}>
+              Confirmar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Botão para ajuste personalizado */}
       <Dialog open={isAdjusting} onOpenChange={setIsAdjusting}>
