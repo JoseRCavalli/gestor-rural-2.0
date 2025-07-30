@@ -16,15 +16,15 @@ serve(async (req) => {
 
     // PREÇOS ATUAIS - EDITAR APENAS ESTES VALORES
     const currentPrices = {
-      soja: 129.04,    // EDITAR AQUI: preço atual da soja
-      milho: 64.02,    // EDITAR AQUI: preço atual do milho  
+      soja: 137.99,    // EDITAR AQUI: preço atual da soja
+      milho: 63.51,    // EDITAR AQUI: preço atual do milho  
       leite: 2.4267    // EDITAR AQUI: preço atual do leite
     };
 
     // PREÇOS ANTERIORES (para calcular percentual) - EDITAR quando atualizar os preços
     const previousPrices = {
-      soja: 128.43,    // EDITAR AQUI: preço anterior da soja
-      milho: 65.52,    // EDITAR AQUI: preço anterior do milho
+      soja: 129.04,    // EDITAR AQUI: preço anterior da soja
+      milho: 64.02,    // EDITAR AQUI: preço anterior do milho
       leite: 2.41     // EDITAR AQUI: preço anterior do leite
     };
 
