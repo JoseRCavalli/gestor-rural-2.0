@@ -41,7 +41,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
     setLoading(true);
     
     try {
-      let dataLines: string[][] = [];
+      let dataLines: string[][] = []
       
       // Check if it's an Excel file
       if (selectedFile.name.toLowerCase().endsWith('.xlsx') || selectedFile.name.toLowerCase().endsWith('.xls')) {
@@ -65,7 +65,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
         console.log('Processing CSV file:', selectedFile.name);
         const text = await selectedFile.text();
         const lines = text.split('\n').filter(line => line.trim());
-        
+
         if (lines.length === 0) {
           toast.error('Arquivo vazio');
           return;
@@ -75,31 +75,34 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
           line.split(',').map(col => col.trim().replace(/"/g, ''))
         );
       }
-      
+
       if (dataLines.length === 0) {
         toast.error('Arquivo vazio ou formato não reconhecido');
         return;
       }
 
+      console.log(dataLines);
+
       // Remove header line (first row is usually headers)
       const processedItems: ImportItem[] = [];
-      const startIndex = 1; // Skip header row
+      const startIndex = 1;
 
       dataLines.slice(startIndex).forEach((columns, index) => {
-        if (columns.length < 3) return;
+
+        const rawItem = columns.at(0).toString().split(';');
 
         // Mapear campos do arquivo
         const item: ImportItem = {
-          tag: columns[0]?.toString() || '',
-          name: columns[1]?.toString() || null,
-          reproductive_status: columns[2]?.toString() || '',
-          phase: mapPhase(columns[2]?.toString() || ''),
-          observations: columns[3]?.toString() || '',
-          last_calving_date: columns[4]?.toString() || '',
-          days_in_lactation: columns[5] ? parseInt(columns[5].toString()) : null,
-          milk_control: columns[6] ? parseFloat(columns[6].toString()) : null,
-          expected_calving_interval: columns[7] ? parseInt(columns[7].toString()) : null,
-          del_average: columns[8] ? parseFloat(columns[8].toString()) : null,
+          tag: rawItem[0]?.toString() || '',
+          name: rawItem[1]?.toString() || null,
+          reproductive_status: rawItem[2].toString() || '',
+          phase: mapPhase(rawItem[3]?.toString() || ''),
+          observations: rawItem[4]?.toString() || '',
+          last_calving_date: rawItem[5]?.toString() || '',
+          days_in_lactation: rawItem[6] ? parseInt(rawItem[6].toString()) : null,
+          milk_control: rawItem[7] ? parseFloat(rawItem[7].toString()) : null,
+          expected_calving_interval: rawItem[8] ? parseInt(rawItem[8].toString()) : null,
+          del_average: rawItem[9] ? parseFloat(rawItem[9].toString()) : null,
           birth_date: generateBirthDate(columns[2]?.toString() || ''),
           valid: true,
           errors: []
@@ -167,7 +170,7 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
     if (status.includes('seca') || status.includes('gestante') || status.includes('prenha')) {
       return 'vaca_seca';
     }
-    
+
     // Padrão para casos não identificados
     return 'vaca_seca';
   };

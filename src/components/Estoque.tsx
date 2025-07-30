@@ -318,7 +318,7 @@ const Estoque = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">Nenhum item encontrado.</div>
+              <div className="py-4 text-gray-500">Nenhum item encontrado.</div>
             ) : (
               filteredItems.map(item => (
                 <motion.div

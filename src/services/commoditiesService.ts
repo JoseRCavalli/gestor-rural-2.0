@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import {supabase} from '@/integrations/supabase/client';
 
 export interface CommodityPrice {
   name: string;
@@ -33,7 +33,7 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
     const generalData = generalResponse.data;
     
     if (cepeaData && generalData) {
-      let commodities = generalData.map((item: CommodityPrice) => {
+      return generalData.map((item: CommodityPrice) => {
         if (item.name === 'Soja' && cepeaData.soja) {
           return {
             ...item,
@@ -72,8 +72,6 @@ export const getCommodityPrices = async (): Promise<CommodityPrice[]> => {
         }
         return item;
       });
-      
-      return commodities;
     }
     
     return generalData || [];

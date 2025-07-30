@@ -52,12 +52,12 @@ serve(async (req) => {
 
     // Insert items into database
     const { data, error } = await supabase
-      .from('stock_items')
-      .insert(itemsToInsert)
-      .select();
+        .from('stock_items')
+        .upsert(itemsToInsert, { onConflict: ['code', 'user_id'] })
+        .select();
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('Database error:', error.message);
       return new Response(
         JSON.stringify({ error: 'Falha ao importar itens do estoque: ' + error.message }),
         { 

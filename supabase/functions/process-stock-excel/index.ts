@@ -1,13 +1,13 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import * as XLSX from 'xlsx';
+import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.2/package/xlsx.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface ImportItem {
+export interface ImportItem {
   name: string;
   code?: string;
   quantity: number;
@@ -243,7 +243,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
+        success: true,
         preview,
         total_rows: preview.length,
         valid_rows: preview.filter(item => item.valid).length,
