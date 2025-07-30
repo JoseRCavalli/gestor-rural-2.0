@@ -25,6 +25,8 @@ interface StockControlProps {
     unit: string;
     min_stock: number;
     category: string;
+    available_stock?: number;
+    average_cost?: number;
   };
 }
 
@@ -41,7 +43,18 @@ const StockControl = ({ item }: StockControlProps) => {
       ? item.quantity + amount 
       : Math.max(0, item.quantity - amount);
     
-    await updateStockItem(item.id, { quantity: newQuantity });
+    const currentAvailableStock = item.available_stock || 0;
+    const costPerUnit = item.average_cost || 0;
+    const stockValueChange = amount * costPerUnit;
+    
+    const newAvailableStock = type === 'add'
+      ? currentAvailableStock + stockValueChange
+      : Math.max(0, currentAvailableStock - stockValueChange);
+    
+    await updateStockItem(item.id, { 
+      quantity: newQuantity,
+      available_stock: newAvailableStock
+    });
     
     toast.success(
       type === 'add' 
