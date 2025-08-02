@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { CommodityPrice, CommodityHistory, getCommodityPrices, getCommodityHistory } from '@/services/commoditiesService';
+import { CommodityPrice, CommodityHistory, getCommodityPrices, getCommodityHistory } from '@/services/commodities-service.ts';
 
 export const useCommodities = () => {
   const [commodities, setCommodities] = useState<CommodityPrice[]>([]);
