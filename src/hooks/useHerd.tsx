@@ -44,8 +44,10 @@ export const useHerd = () => {
       }
 
       // Transform the animals data to match our herd interface
-      const herdData = (data || []).map(animal => ({
+      const herdData = (data || []).map((animal: any) => ({
         ...animal,
+        reproductive_status: animal.reproductive_status || animal.phase,
+        batch: animal.batch || 'Lote A',
       }));
 
       setHerd(herdData);
@@ -91,7 +93,9 @@ export const useHerd = () => {
 
       const newAnimal = {
         ...data,
-      };
+        reproductive_status: (data as any).reproductive_status || (data as any).phase,
+        batch: (data as any).batch || 'Lote A',
+      } as HerdAnimal;
 
       setHerd(prev => [newAnimal, ...prev]);
       toast.success('Animal cadastrado com sucesso!');
@@ -136,7 +140,9 @@ export const useHerd = () => {
 
       const updatedAnimal = {
         ...data,
-      };
+        reproductive_status: (data as any).reproductive_status || (data as any).phase,
+        batch: (data as any).batch || 'Lote A',
+      } as HerdAnimal;
 
       setHerd(prev => prev.map(animal =>
           animal.id === id ? updatedAnimal : animal
@@ -184,6 +190,8 @@ export const useHerd = () => {
         name: animal.name || null,
         phase: animal.phase,
         birth_date: animal.birth_date,
+        reproductive_status: animal.reproductive_status || animal.phase,
+        batch: animal.batch || 'Lote A',
         user_id: user.id
       }));
 

@@ -1,18 +1,19 @@
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {
-    Beef,
+    Users,
     Heart,
     Calendar,
     TrendingUp,
     Activity,
     Milk,
     Baby,
-    Timer, Repeat
+    Timer, 
+    Repeat
 } from 'lucide-react';
 import {useHerd} from '@/hooks/useHerd';
-import {maskValueAnimalPhase} from "@/lib/types/animal-phase.ts";
-import {maskValueReproductiveStatus} from "@/lib/types/animal-reproductive-status.ts";
+import {AnimalPhase, maskValueAnimalPhase} from "@/lib/types/animal-phase.ts";
+import {ReproductiveStatus, maskValueReproductiveStatus} from "@/lib/types/animal-reproductive-status.ts";
 
 const HerdStats = () => {
     const {herd} = useHerd();
@@ -83,7 +84,7 @@ const HerdStats = () => {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total de Animais</CardTitle>
-                        <Beef className="h-4 w-4 text-green-600"/>
+                        <Users className="h-4 w-4 text-green-600"/>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalAnimals}</div>
@@ -147,7 +148,7 @@ const HerdStats = () => {
                             {Object.entries(phaseStats).map(([status, count]) => (
                                 <div key={status} className="text-center p-4 rounded-lg border">
                                     <Badge className={`mb-2 ${getStatusColor(status)}`}>
-                                        {maskValueAnimalPhase(status)}
+                                        {maskValueAnimalPhase(status as AnimalPhase)}
                                     </Badge>
                                     <div className="text-2xl font-bold text-gray-900">{count}</div>
                                     <div className="text-xs text-gray-500">
@@ -171,7 +172,7 @@ const HerdStats = () => {
                             {Object.entries(reproductiveStats).map(([status, count]) => (
                                 <div key={status} className="text-center p-4 rounded-lg border">
                                     <Badge className={`mb-2 ${getStatusColor(status)}`}>
-                                        {maskValueReproductiveStatus(status)}
+                                        {maskValueReproductiveStatus(status as ReproductiveStatus)}
                                     </Badge>
                                     <div className="text-2xl font-bold text-gray-900">{count}</div>
                                     <div className="text-xs text-gray-500">
@@ -252,7 +253,7 @@ const HerdStats = () => {
             {totalAnimals === 0 && (
                 <Card>
                     <CardContent className="text-center py-8">
-                        <Beef className="w-12 h-12 text-gray-400 mx-auto mb-4"/>
+                        <Users className="w-12 h-12 text-gray-400 mx-auto mb-4"/>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Rebanho Vazio</h3>
                         <p className="text-gray-600 mb-4">
                             Você ainda não cadastrou nenhum animal no sistema.
