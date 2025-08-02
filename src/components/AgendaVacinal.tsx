@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
+import { useEvents } from '@/hooks/useEvents';
 import ImportVaccinations from './ImportVaccinations';
 import VaccinationForm from './VaccinationForm';
 import ScheduleVaccination from './ScheduleVaccination';
@@ -16,9 +17,37 @@ import ScheduleVaccination from './ScheduleVaccination';
 const AgendaVacinal = () => {
   const { vaccinations, vaccineTypes, loading } = useVaccinations();
   const { animals } = useAnimals();
+  const { events } = useEvents();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'overdue' | 'upcoming' | 'completed'>('all');
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Processar eventos de vacinação agendados
+  const scheduledVaccinations = events
+    .filter(event => event.type === 'vaccination' && !event.completed)
+    .map(event => {
+      const eventDate = new Date(event.date + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
+      const daysUntilEvent = Math.ceil((eventDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let status: 'scheduled' | 'overdue' | 'upcoming' = 'scheduled';
+      if (daysUntilEvent < 0) {
+        status = 'overdue';
+      } else if (daysUntilEvent <= 30) {
+        status = 'upcoming';
+      }
+
+      return {
+        id: event.id,
+        type: 'scheduled' as const,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        status,
+        daysUntilEvent,
+        isScheduled: true
+      };
+    });
 
   // Processar vacinações com informações dos animais
   const processedVaccinations = vaccinations.map(vaccination => {
@@ -45,19 +74,24 @@ const AgendaVacinal = () => {
       animal,
       vaccineType,
       status,
-      daysUntilNext
+      daysUntilNext,
+      type: 'completed' as const,
+      isScheduled: false
     };
   });
 
+  // Combinar vacinações aplicadas e agendadas
+  const allVaccinations = [...processedVaccinations, ...scheduledVaccinations];
+
   // Filtrar vacinações
-  const filteredVaccinations = processedVaccinations.filter(vaccination => {
+  const filteredVaccinations = allVaccinations.filter(vaccination => {
     switch (selectedFilter) {
       case 'overdue':
         return vaccination.status === 'overdue';
       case 'upcoming':
         return vaccination.status === 'upcoming';
       case 'completed':
-        return vaccination.status === 'completed';
+        return vaccination.status === 'completed' || vaccination.status === 'scheduled';
       default:
         return true;
     }
@@ -65,20 +99,30 @@ const AgendaVacinal = () => {
 
   // Estatísticas
   const stats = {
-    total: processedVaccinations.length,
-    overdue: processedVaccinations.filter(v => v.status === 'overdue').length,
-    upcoming: processedVaccinations.filter(v => v.status === 'upcoming').length,
-    completed: processedVaccinations.filter(v => v.status === 'completed').length
+    total: allVaccinations.length,
+    overdue: allVaccinations.filter(v => v.status === 'overdue').length,
+    upcoming: allVaccinations.filter(v => v.status === 'upcoming').length,
+    completed: processedVaccinations.filter(v => v.status === 'completed').length + scheduledVaccinations.filter(v => v.status === 'scheduled').length
   };
 
-  const getStatusBadge = (status: string, daysUntilNext: number) => {
-    switch (status) {
-      case 'overdue':
-        return <Badge variant="destructive">Atrasada ({Math.abs(daysUntilNext)} dias)</Badge>;
-      case 'upcoming':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Próxima ({daysUntilNext} dias)</Badge>;
-      default:
-        return <Badge variant="default" className="bg-green-100 text-green-800">Aplicada</Badge>;
+  const getStatusBadge = (vaccination: any) => {
+    if (vaccination.isScheduled) {
+      if (vaccination.status === 'overdue') {
+        return <Badge variant="destructive">Agendada (Atrasada {Math.abs(vaccination.daysUntilEvent)} dias)</Badge>;
+      } else if (vaccination.status === 'upcoming') {
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Agendada ({vaccination.daysUntilEvent} dias)</Badge>;
+      } else {
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Agendada</Badge>;
+      }
+    } else {
+      switch (vaccination.status) {
+        case 'overdue':
+          return <Badge variant="destructive">Atrasada ({Math.abs(vaccination.daysUntilNext)} dias)</Badge>;
+        case 'upcoming':
+          return <Badge variant="secondary" className="bg-green-100 text-green-800">Próxima ({vaccination.daysUntilNext} dias)</Badge>;
+        default:
+          return <Badge variant="default" className="bg-green-100 text-green-800">Aplicada</Badge>;
+      }
     }
   };
 
@@ -235,7 +279,7 @@ const AgendaVacinal = () => {
                       vaccination.status === 'overdue' 
                         ? 'border-red-200 bg-red-50' 
                         : vaccination.status === 'upcoming'
-                        ? 'border-green-200 bg-green-50'
+                        ? vaccination.isScheduled ? 'border-blue-200 bg-blue-50' : 'border-green-200 bg-green-50'
                         : 'border-gray-200 bg-white'
                     }`}
                   >
@@ -243,37 +287,55 @@ const AgendaVacinal = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="font-semibold text-gray-900">
-                            {vaccination.animal?.name || `Brinco ${vaccination.animal?.tag}`}
+                            {vaccination.isScheduled 
+                              ? (vaccination as any).title 
+                              : ((vaccination as any).animal?.name || `Brinco ${(vaccination as any).animal?.tag}`)
+                            }
                           </h3>
-                          {getStatusBadge(vaccination.status, vaccination.daysUntilNext)}
+                          {getStatusBadge(vaccination)}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                          <div>
-                            <p><strong>Vacina:</strong> {vaccination.vaccineType?.name}</p>
-                            <p><strong>Data de Aplicação:</strong> {formatDate(vaccination.application_date)}</p>
-                            {vaccination.next_dose_date && (
-                              <p><strong>Próxima Dose:</strong> {formatDate(vaccination.next_dose_date)}</p>
+                        {vaccination.isScheduled ? (
+                          // Renderização para vacinações agendadas
+                          <div className="text-sm text-gray-600">
+                            <p><strong>Data Agendada:</strong> {formatDate((vaccination as any).date)}</p>
+                            {(vaccination as any).description && (
+                              <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-700">
+                                <strong>Detalhes:</strong> {(vaccination as any).description}
+                              </div>
                             )}
                           </div>
-                          
-                          <div>
-                            {vaccination.batch_number && (
-                              <p><strong>Lote:</strong> {vaccination.batch_number}</p>
+                        ) : (
+                          // Renderização para vacinações aplicadas
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                              <div>
+                                <p><strong>Vacina:</strong> {(vaccination as any).vaccineType?.name}</p>
+                                <p><strong>Data de Aplicação:</strong> {formatDate((vaccination as any).application_date)}</p>
+                                {(vaccination as any).next_dose_date && (
+                                  <p><strong>Próxima Dose:</strong> {formatDate((vaccination as any).next_dose_date)}</p>
+                                )}
+                              </div>
+                              
+                              <div>
+                                {(vaccination as any).batch_number && (
+                                  <p><strong>Lote:</strong> {(vaccination as any).batch_number}</p>
+                                )}
+                                {(vaccination as any).manufacturer && (
+                                  <p><strong>Fabricante:</strong> {(vaccination as any).manufacturer}</p>
+                                )}
+                                {(vaccination as any).responsible && (
+                                  <p><strong>Responsável:</strong> {(vaccination as any).responsible}</p>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {(vaccination as any).notes && (
+                              <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-700">
+                                <strong>Observações:</strong> {(vaccination as any).notes}
+                              </div>
                             )}
-                            {vaccination.manufacturer && (
-                              <p><strong>Fabricante:</strong> {vaccination.manufacturer}</p>
-                            )}
-                            {vaccination.responsible && (
-                              <p><strong>Responsável:</strong> {vaccination.responsible}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {vaccination.notes && (
-                          <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-700">
-                            <strong>Observações:</strong> {vaccination.notes}
-                          </div>
+                          </>
                         )}
                       </div>
                     </div>
