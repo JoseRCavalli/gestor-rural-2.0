@@ -11,6 +11,7 @@ import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
 import ImportVaccinations from './ImportVaccinations';
 import VaccinationForm from './VaccinationForm';
+import ScheduleVaccination from './ScheduleVaccination';
 
 const AgendaVacinal = () => {
   const { vaccinations, vaccineTypes, loading } = useVaccinations();
@@ -91,6 +92,7 @@ const AgendaVacinal = () => {
         <h2 className="text-2xl font-bold text-gray-800">💉 Agenda Vacinal</h2>
         <div className="flex flex-col sm:flex-row gap-2">
           <VaccinationForm />
+          <ScheduleVaccination />
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center space-x-2">
