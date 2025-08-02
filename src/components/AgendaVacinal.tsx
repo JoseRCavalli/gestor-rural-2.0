@@ -13,6 +13,8 @@ import { useEvents } from '@/hooks/useEvents';
 import ImportVaccinations from './ImportVaccinations';
 import VaccinationForm from './VaccinationForm';
 import ScheduleVaccination from './ScheduleVaccination';
+import MarkAsAppliedForm from './MarkAsAppliedForm';
+import VaccinationNotifications from './VaccinationNotifications';
 
 const AgendaVacinal = () => {
   const { vaccinations, vaccineTypes, loading } = useVaccinations();
@@ -130,8 +132,9 @@ const AgendaVacinal = () => {
     return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
   };
 
-  return (
+   return (
     <div className="space-y-6">
+      <VaccinationNotifications />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800">💉 Agenda Vacinal</h2>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -336,6 +339,18 @@ const AgendaVacinal = () => {
                               </div>
                             )}
                           </>
+                        )}
+                        
+                        {/* Botões de ação */}
+                        {(vaccination.status === 'overdue' || vaccination.status === 'upcoming') && (
+                          <div className="mt-3 flex justify-end">
+                            <MarkAsAppliedForm 
+                              vaccination={vaccination.isScheduled ? undefined : vaccination}
+                              eventId={vaccination.isScheduled ? vaccination.id : undefined}
+                              isScheduled={vaccination.isScheduled}
+                              size="sm"
+                            />
+                          </div>
                         )}
                       </div>
                     </div>

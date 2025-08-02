@@ -139,6 +139,61 @@ export const useVaccinations = () => {
     }
   };
 
+  const markAsApplied = async (vaccinationId: string, applicationData: {
+    application_date: string;
+    batch_number?: string;
+    manufacturer?: string;
+    responsible?: string;
+    notes?: string;
+  }) => {
+    try {
+      // Buscar a vacinação atual
+      const existingVaccination = vaccinations.find(v => v.id === vaccinationId);
+      if (!existingVaccination) {
+        toast.error('Vacinação não encontrada');
+        return;
+      }
+
+      // Calcular próxima dose se a vacina tem intervalo
+      const vaccineType = vaccineTypes.find(vt => vt.id === existingVaccination.vaccine_type_id);
+      let nextDoseDate = null;
+      
+      if (vaccineType?.interval_months) {
+        const applicationDate = new Date(applicationData.application_date);
+        const nextDate = new Date(applicationDate);
+        nextDate.setMonth(nextDate.getMonth() + vaccineType.interval_months);
+        nextDoseDate = nextDate.toISOString().split('T')[0];
+      }
+
+      const { data, error } = await supabase
+        .from('vaccinations')
+        .update({
+          application_date: applicationData.application_date,
+          next_dose_date: nextDoseDate,
+          batch_number: applicationData.batch_number,
+          manufacturer: applicationData.manufacturer,
+          responsible: applicationData.responsible,
+          notes: applicationData.notes
+        })
+        .eq('id', vaccinationId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error marking vaccination as applied:', error);
+        toast.error('Erro ao marcar vacinação como aplicada');
+        return;
+      }
+
+      setVaccinations(prev => prev.map(vacc => vacc.id === vaccinationId ? data : vacc));
+      toast.success('Vacinação marcada como aplicada!');
+      return data;
+    } catch (error) {
+      console.error('Error marking vaccination as applied:', error);
+      toast.error('Erro ao marcar vacinação como aplicada');
+    }
+  };
+
   useEffect(() => {
     fetchVaccineTypes();
     fetchVaccinations();
@@ -151,6 +206,7 @@ export const useVaccinations = () => {
     addVaccination,
     updateVaccination,
     deleteVaccination,
+    markAsApplied,
     refetch: fetchVaccinations
   };
 };
