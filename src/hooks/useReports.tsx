@@ -3,16 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-
-export interface Report {
-  id: string;
-  user_id: string;
-  report_type: string;
-  title: string;
-  data: any;
-  generated_at: string;
-  created_at: string;
-}
+import { Report } from '@/types/database';
 
 export const useReports = () => {
   const { user } = useAuth();

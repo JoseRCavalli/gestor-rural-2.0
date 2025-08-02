@@ -1,19 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-
-export interface Animal {
-  id: string;
-  user_id: string;
-  tag: string;
-  name?: string;
-  birth_date: string;
-  phase: 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca';
-  created_at: string;
-  updated_at: string;
-}
+import { Animal } from '@/types/database';
 
 export const useAnimals = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -37,13 +26,7 @@ export const useAnimals = () => {
         return;
       }
 
-      // Type cast the data to ensure proper typing
-      const typedData = (data || []).map(animal => ({
-        ...animal,
-        phase: animal.phase as 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca'
-      }));
-
-      setAnimals(typedData);
+      setAnimals(data || []);
     } catch (error) {
       console.error('Error fetching animals:', error);
       toast.error('Erro ao carregar animais');
@@ -68,15 +51,9 @@ export const useAnimals = () => {
         return;
       }
 
-      // Type cast the returned data
-      const typedData = {
-        ...data,
-        phase: data.phase as 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca'
-      };
-
-      setAnimals(prev => [...prev, typedData]);
+      setAnimals(prev => [...prev, data]);
       toast.success('Animal adicionado com sucesso!');
-      return typedData;
+      return data;
     } catch (error) {
       console.error('Error adding animal:', error);
       toast.error('Erro ao adicionar animal');
@@ -98,13 +75,7 @@ export const useAnimals = () => {
         return;
       }
 
-      // Type cast the returned data
-      const typedData = {
-        ...data,
-        phase: data.phase as 'bezerra' | 'novilha' | 'vaca_lactante' | 'vaca_seca'
-      };
-
-      setAnimals(prev => prev.map(animal => animal.id === id ? typedData : animal));
+      setAnimals(prev => prev.map(animal => animal.id === id ? data : animal));
       toast.success('Animal atualizado com sucesso!');
     } catch (error) {
       console.error('Error updating animal:', error);

@@ -19,7 +19,7 @@ serve(async (req) => {
     const basePrices = {
       soja: 129.04,    // CEPEA atual
       milho: 64.02,    // CEPEA atual (corrigido)
-      leite: 2.4099,   // Conseleite atual
+      leite: 2.4267,   // Conseleite atual
       boiGordo: 312.00, // Atual
       dolar: 5.57      // USD/BRL atual
     };

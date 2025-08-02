@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {SupabaseErrorMessages} from "@/lib/exceptions/SupabaseErrorMessages.ts";
-import {AuthSessionMissingError} from "@supabase/auth-js/src/lib/errors.ts";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -33,7 +32,7 @@ const Login = () => {
         // TO DO -> Throw To Many Requests cooldown
         // ----------------------------------------
 
-        toast.error((SupabaseErrorMessages[error.code] || 'Ocorreu um erro! Tente novamente mais tarde.'));
+        toast.error((SupabaseErrorMessages[error.message] || 'Ocorreu um erro! Tente novamente mais tarde.'));
       } else {
         toast.success('Login realizado com sucesso!');
       }

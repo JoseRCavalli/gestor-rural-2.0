@@ -12,7 +12,8 @@ import {
   Bell,
   LogOut,
   Syringe,
-  Beef
+  Beef,
+  Dna
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import Agenda from '@/components/Agenda';
@@ -76,7 +77,7 @@ const Index = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-9 w-full mb-8 bg-white/80 backdrop-blur-sm">
+          <TabsList className="grid grid-cols-10 w-full mb-8 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <Home className="w-4 h-4" />
               <span className="hidden md:inline">Dashboard</span>
@@ -104,6 +105,10 @@ const Index = () => {
             <TabsTrigger value="relatorios" className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden md:inline">Relatórios</span>
+            </TabsTrigger>
+            <TabsTrigger value="genetica" className="flex items-center space-x-2">
+              <Dna className="w-4 h-4" />
+              <span className="hidden md:inline">Genética</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center space-x-2 relative">
               <Bell className="w-4 h-4" />
@@ -146,6 +151,16 @@ const Index = () => {
 
           <TabsContent value="relatorios">
             <Relatorios />
+          </TabsContent>
+
+          <TabsContent value="genetica">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <Dna className="w-16 h-16 mx-auto mb-4 text-primary" />
+                <h2 className="text-2xl font-bold text-gray-700 mb-2">Genética</h2>
+                <p className="text-gray-500">Em breve!</p>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="notifications">

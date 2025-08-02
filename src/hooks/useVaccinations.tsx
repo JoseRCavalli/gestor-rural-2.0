@@ -3,31 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-
-export interface VaccineType {
-  id: string;
-  name: string;
-  description?: string;
-  interval_months?: number;
-  min_age_months?: number;
-  max_age_months?: number;
-  phases?: string[];
-}
-
-export interface Vaccination {
-  id: string;
-  user_id: string;
-  animal_id: string;
-  vaccine_type_id: string;
-  application_date: string;
-  next_dose_date?: string;
-  batch_number?: string;
-  manufacturer?: string;
-  responsible?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { VaccineType, Vaccination } from '@/types/database';
 
 export const useVaccinations = () => {
   const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);

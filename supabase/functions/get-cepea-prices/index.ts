@@ -16,16 +16,16 @@ serve(async (req) => {
 
     // PREÇOS ATUAIS - EDITAR APENAS ESTES VALORES
     const currentPrices = {
-      soja: 129.04,    // EDITAR AQUI: preço atual da soja
-      milho: 64.022,    // EDITAR AQUI: preço atual do milho  
-      leite: 2.4099    // EDITAR AQUI: preço atual do leite
+      soja: 137.99,    // EDITAR AQUI: preço atual da soja
+      milho: 63.51,    // EDITAR AQUI: preço atual do milho  
+      leite: 2.4267    // EDITAR AQUI: preço atual do leite
     };
 
     // PREÇOS ANTERIORES (para calcular percentual) - EDITAR quando atualizar os preços
     const previousPrices = {
-      soja: 128.43,    // EDITAR AQUI: preço anterior da soja
-      milho: 65.52,    // EDITAR AQUI: preço anterior do milho
-      leite: 2.437     // EDITAR AQUI: preço anterior do leite
+      soja: 129.04,    // EDITAR AQUI: preço anterior da soja
+      milho: 64.02,    // EDITAR AQUI: preço anterior do milho
+      leite: 2.41     // EDITAR AQUI: preço anterior do leite
     };
 
     // Função para calcular percentual de mudança
@@ -60,7 +60,7 @@ serve(async (req) => {
         unit: 'litro',
         change: parseFloat(leiteChange.toFixed(2)),
         trend: leiteChange >= 0 ? 'up' : 'down',
-        source: 'Conseleite - Paraná (Junho)',
+        source: 'Conseleite - Paraná (Julho)',
         lastUpdate: new Date().toISOString()
       }
     };
