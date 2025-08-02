@@ -12,7 +12,7 @@ import {
   Bell,
   LogOut,
   Syringe,
-  Users,
+  PawPrint,
   Dna
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
@@ -91,7 +91,7 @@ const Index = () => {
               <span className="hidden md:inline">Vacinas</span>
             </TabsTrigger>
             <TabsTrigger value="rebanho" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
+              <PawPrint className="w-4 h-4" />
               <span className="hidden md:inline">Rebanho</span>
             </TabsTrigger>
             <TabsTrigger value="estoque" className="flex items-center space-x-2">
