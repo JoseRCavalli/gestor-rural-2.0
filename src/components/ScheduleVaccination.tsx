@@ -99,7 +99,7 @@ const ScheduleVaccination = () => {
           <span>Agendar Vacina</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Syringe className="w-5 h-5" />
@@ -110,81 +110,99 @@ const ScheduleVaccination = () => {
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="animal">Animal*</Label>
-            <Select value={formData.animal_id} onValueChange={(value) => handleInputChange('animal_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o animal" />
-              </SelectTrigger>
-              <SelectContent>
-                {animals.map((animal) => (
-                  <SelectItem key={animal.id} value={animal.id}>
-                    {animal.name ? `${animal.name} (${animal.tag})` : `Brinco ${animal.tag}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Animal */}
+            <div className="space-y-2">
+              <Label htmlFor="animal" className="flex items-center space-x-1">
+                <Syringe className="w-4 h-4" />
+                <span>Animal *</span>
+              </Label>
+              <Select value={formData.animal_id} onValueChange={(value) => handleInputChange('animal_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o animal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {animals.map((animal) => (
+                    <SelectItem key={animal.id} value={animal.id}>
+                      {animal.name ? `${animal.name} (${animal.tag})` : `Brinco ${animal.tag}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tipo de Vacina */}
+            <div className="space-y-2">
+              <Label htmlFor="vaccine" className="flex items-center space-x-1">
+                <Syringe className="w-4 h-4" />
+                <span>Tipo de Vacina *</span>
+              </Label>
+              <Select value={formData.vaccine_type_id} onValueChange={(value) => handleInputChange('vaccine_type_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a vacina" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vaccineTypes.map((vaccine) => (
+                    <SelectItem key={vaccine.id} value={vaccine.id}>
+                      {vaccine.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Data Agendada */}
+            <div className="space-y-2">
+              <Label htmlFor="scheduled_date" className="flex items-center space-x-1">
+                <Calendar className="w-4 h-4" />
+                <span>Data Agendada *</span>
+              </Label>
+              <Input
+                id="scheduled_date"
+                type="date"
+                min={today}
+                value={formData.scheduled_date}
+                onChange={(e) => handleInputChange('scheduled_date', e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            {/* Lote */}
+            <div className="space-y-2">
+              <Label htmlFor="batch_number">Lote</Label>
+              <Input
+                id="batch_number"
+                value={formData.batch_number}
+                onChange={(e) => handleInputChange('batch_number', e.target.value)}
+                placeholder="Número do lote"
+              />
+            </div>
+
+            {/* Fabricante */}
+            <div className="space-y-2">
+              <Label htmlFor="manufacturer">Fabricante</Label>
+              <Input
+                id="manufacturer"
+                value={formData.manufacturer}
+                onChange={(e) => handleInputChange('manufacturer', e.target.value)}
+                placeholder="Nome do fabricante"
+              />
+            </div>
+
+            {/* Responsável */}
+            <div className="space-y-2">
+              <Label htmlFor="responsible">Responsável</Label>
+              <Input
+                id="responsible"
+                value={formData.responsible}
+                onChange={(e) => handleInputChange('responsible', e.target.value)}
+                placeholder="Nome do responsável"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="vaccine">Tipo de Vacina*</Label>
-            <Select value={formData.vaccine_type_id} onValueChange={(value) => handleInputChange('vaccine_type_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a vacina" />
-              </SelectTrigger>
-              <SelectContent>
-                {vaccineTypes.map((vaccine) => (
-                  <SelectItem key={vaccine.id} value={vaccine.id}>
-                    {vaccine.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="scheduled_date">Data Agendada*</Label>
-            <Input
-              id="scheduled_date"
-              type="date"
-              min={today}
-              value={formData.scheduled_date}
-              onChange={(e) => handleInputChange('scheduled_date', e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="batch_number">Lote</Label>
-            <Input
-              id="batch_number"
-              value={formData.batch_number}
-              onChange={(e) => handleInputChange('batch_number', e.target.value)}
-              placeholder="Número do lote"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="manufacturer">Fabricante</Label>
-            <Input
-              id="manufacturer"
-              value={formData.manufacturer}
-              onChange={(e) => handleInputChange('manufacturer', e.target.value)}
-              placeholder="Nome do fabricante"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="responsible">Responsável</Label>
-            <Input
-              id="responsible"
-              value={formData.responsible}
-              onChange={(e) => handleInputChange('responsible', e.target.value)}
-              placeholder="Nome do responsável"
-            />
-          </div>
-
+          {/* Observações */}
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>
             <Textarea
@@ -203,11 +221,11 @@ const ScheduleVaccination = () => {
             </AlertDescription>
           </Alert>
 
-          <div className="flex space-x-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+          <div className="flex justify-end space-x-3">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
+            <Button type="submit">
               Agendar Vacinação
             </Button>
           </div>
