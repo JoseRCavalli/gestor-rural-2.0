@@ -19,11 +19,12 @@ interface UnmarkAppliedFormProps {
 
 const UnmarkAppliedForm = ({ eventId, size = 'default' }: UnmarkAppliedFormProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { updateEvent } = useEvents();
+  const { updateEvent, refetch } = useEvents();
 
   const handleUnmark = async () => {
     try {
       await updateEvent(eventId, { completed: false });
+      await refetch(); // Atualizar dados imediatamente
       toast.success('Vacinação desmarcada com sucesso!');
       setIsOpen(false);
     } catch (error) {

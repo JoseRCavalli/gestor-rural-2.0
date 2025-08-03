@@ -33,8 +33,8 @@ const MarkAsAppliedForm = ({ vaccination, eventId, isScheduled = false, size = '
     notes: ''
   });
 
-  const { markAsApplied } = useVaccinations();
-  const { updateEvent } = useEvents();
+  const { markAsApplied, refetch: refetchVaccinations } = useVaccinations();
+  const { updateEvent, refetch: refetchEvents } = useEvents();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,15 +49,16 @@ const MarkAsAppliedForm = ({ vaccination, eventId, isScheduled = false, size = '
         // Marcar evento agendado como concluído E criar registro de vacinação
         await updateEvent(eventId, { completed: true });
         
-        // Criar registro de vacinação aplicada
-        // Nota: Para eventos agendados, seria ideal ter mais informações como animal_id e vaccine_type_id
-        // Por enquanto, vamos apenas marcar o evento como completed
-        // TODO: Melhorar a estrutura para incluir esses dados no evento
+        // Refetch para atualizar imediatamente
+        await refetchEvents();
         
         toast.success('Vacinação agendada marcada como aplicada!');
       } else if (vaccination) {
         // Marcar vacinação como aplicada
         await markAsApplied(vaccination.id, formData);
+        
+        // Refetch para atualizar imediatamente
+        await refetchVaccinations();
       }
       
       // Resetar formulário
