@@ -269,7 +269,8 @@ const HerdImporter = ({ onClose }: HerdImporterProps) => {
         days_in_lactation: item.days_in_lactation || undefined,
         milk_control: item.milk_control || undefined,
         expected_calving_interval: item.expected_calving_interval || undefined,
-        del_average: item.del_average || undefined
+        del_average: item.del_average || undefined,
+        batch: 'Lote A'
       }));
 
       await importAnimals(animalsToImport);

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
-  Users, 
+  PawPrint, 
   Package, 
   TrendingUp, 
   AlertTriangle, 
@@ -172,7 +172,7 @@ const Dashboard = () => {
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Rebanho Cadastrado</CardTitle>
-              <Users className="h-5 w-5 text-green-600" />
+              <PawPrint className="h-5 w-5 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900 mb-2">{animalStats.total}</div>
