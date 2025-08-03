@@ -14,6 +14,7 @@ import ImportVaccinations from './ImportVaccinations';
 import VaccinationForm from './VaccinationForm';
 import ScheduleVaccination from './ScheduleVaccination';
 import MarkAsAppliedForm from './MarkAsAppliedForm';
+import UnmarkAppliedForm from './UnmarkAppliedForm';
 import VaccinationNotifications from './VaccinationNotifications';
 
 const AgendaVacinal = () => {
@@ -24,7 +25,7 @@ const AgendaVacinal = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Processar eventos de vacinação agendados
+  // Processar eventos de vacinação agendados (não concluídos)
   const scheduledVaccinations = events
     .filter(event => event.type === 'vaccination' && !event.completed)
     .map(event => {
@@ -47,9 +48,25 @@ const AgendaVacinal = () => {
         date: event.date,
         status,
         daysUntilEvent,
-        isScheduled: true
+        isScheduled: true,
+        completed: false
       };
     });
+
+  // Processar eventos de vacinação concluídos (aplicados)
+  const completedVaccinationEvents = events
+    .filter(event => event.type === 'vaccination' && event.completed)
+    .map(event => ({
+      id: event.id,
+      type: 'completed-event' as const,
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      status: 'completed' as const,
+      daysUntilEvent: 0,
+      isScheduled: true,
+      completed: true
+    }));
 
   // Processar vacinações com informações dos animais
   const processedVaccinations = vaccinations.map(vaccination => {
@@ -78,12 +95,13 @@ const AgendaVacinal = () => {
       status,
       daysUntilNext,
       type: 'completed' as const,
-      isScheduled: false
+      isScheduled: false,
+      completed: false
     };
   });
 
-  // Combinar vacinações aplicadas e agendadas
-  const allVaccinations = [...processedVaccinations, ...scheduledVaccinations];
+  // Combinar vacinações aplicadas, agendadas e eventos concluídos
+  const allVaccinations = [...processedVaccinations, ...scheduledVaccinations, ...completedVaccinationEvents];
 
   // Filtrar vacinações
   const filteredVaccinations = allVaccinations.filter(vaccination => {
@@ -93,7 +111,7 @@ const AgendaVacinal = () => {
       case 'upcoming':
         return vaccination.status === 'upcoming';
       case 'completed':
-        return vaccination.status === 'completed' || vaccination.status === 'scheduled';
+        return vaccination.status === 'completed' || vaccination.status === 'scheduled' || (vaccination as any).completed;
       default:
         return true;
     }
@@ -104,12 +122,14 @@ const AgendaVacinal = () => {
     total: allVaccinations.length,
     overdue: allVaccinations.filter(v => v.status === 'overdue').length,
     upcoming: allVaccinations.filter(v => v.status === 'upcoming').length,
-    completed: processedVaccinations.filter(v => v.status === 'completed').length + scheduledVaccinations.filter(v => v.status === 'scheduled').length
+    completed: processedVaccinations.filter(v => v.status === 'completed').length + scheduledVaccinations.filter(v => v.status === 'scheduled').length + completedVaccinationEvents.length
   };
 
   const getStatusBadge = (vaccination: any) => {
     if (vaccination.isScheduled) {
-      if (vaccination.status === 'overdue') {
+      if (vaccination.completed) {
+        return <Badge variant="default" className="bg-green-100 text-green-800">Aplicada (Agendada)</Badge>;
+      } else if (vaccination.status === 'overdue') {
         return <Badge variant="destructive">Agendada (Atrasada {Math.abs(vaccination.daysUntilEvent)} dias)</Badge>;
       } else if (vaccination.status === 'upcoming') {
         return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Agendada ({vaccination.daysUntilEvent} dias)</Badge>;
@@ -301,7 +321,7 @@ const AgendaVacinal = () => {
                         {vaccination.isScheduled ? (
                           // Renderização para vacinações agendadas
                           <div className="text-sm text-gray-600">
-                            <p><strong>Data Agendada:</strong> {formatDate((vaccination as any).date)}</p>
+                            <p><strong>Data {(vaccination as any).completed ? 'Aplicada' : 'Agendada'}:</strong> {formatDate((vaccination as any).date)}</p>
                             {(vaccination as any).description && (
                               <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-700">
                                 <strong>Detalhes:</strong> {(vaccination as any).description}
@@ -342,16 +362,22 @@ const AgendaVacinal = () => {
                         )}
                         
                         {/* Botões de ação */}
-                        {(vaccination.status === 'overdue' || vaccination.status === 'upcoming') && (
-                          <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-end gap-2">
+                          {(vaccination.status === 'overdue' || vaccination.status === 'upcoming') && !(vaccination as any).completed && (
                             <MarkAsAppliedForm 
                               vaccination={vaccination.isScheduled ? undefined : vaccination}
                               eventId={vaccination.isScheduled ? vaccination.id : undefined}
                               isScheduled={vaccination.isScheduled}
                               size="sm"
                             />
-                          </div>
-                        )}
+                          )}
+                          {vaccination.isScheduled && (vaccination as any).completed && (
+                            <UnmarkAppliedForm 
+                              eventId={vaccination.id}
+                              size="sm"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
