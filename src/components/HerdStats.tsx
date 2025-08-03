@@ -134,31 +134,7 @@ const HerdStats = () => {
             </div>
 
             {/* Status/Fase dos Animais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                            <Repeat className="w-5 h-5 text-pink-600"/>
-                            <span>Controle por Fases</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {Object.entries(phaseStats).map(([status, count]) => (
-                                <div key={status} className="text-center p-4 rounded-lg border">
-                                    <Badge className={`mb-2 ${getStatusColor(status)}`}>
-                                        {maskValueAnimalPhase(status)}
-                                    </Badge>
-                                    <div className="text-2xl font-bold text-gray-900">{count}</div>
-                                    <div className="text-xs text-gray-500">
-                                        {totalAnimals > 0 ? ((count / totalAnimals) * 100).toFixed(1) : 0}%
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
@@ -167,7 +143,7 @@ const HerdStats = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-6 gap-4">
                             {Object.entries(reproductiveStats).map(([status, count]) => (
                                 <div key={status} className="text-center p-4 rounded-lg border">
                                     <Badge className={`mb-2 ${getStatusColor(status)}`}>
@@ -219,50 +195,43 @@ const HerdStats = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center space-x-2">
-                            <Timer className="w-5 h-5 text-orange-600"/>
-                            <span>Controle Reprodutivo</span>
+                            <Repeat className="w-5 h-5 text-pink-600"/>
+                            <span>Controle por Fases</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Gestantes:</span>
-                                <span className="font-semibold text-green-600">
-                  {(phaseStats['gestante'] || 0) + (phaseStats['dg+'] || 0)}
-                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Abertas:</span>
-                                <span className="font-semibold text-red-600">
-                  {(phaseStats['aberta'] || 0) + (phaseStats['dg-'] || 0)}
-                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Em observação:</span>
-                                <span className="font-semibold text-yellow-600">
-                  {phaseStats['ciclando'] || 0}
-                </span>
-                            </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            {Object.entries(phaseStats).map(([status, count]) => (
+                                <div key={status} className="text-center p-4 rounded-lg border">
+                                    <Badge className={`mb-2 ${getStatusColor(status)}`}>
+                                        {maskValueAnimalPhase(status)}
+                                    </Badge>
+                                    <div className="text-2xl font-bold text-gray-900">{count}</div>
+                                    <div className="text-xs text-gray-500">
+                                        {totalAnimals > 0 ? ((count / totalAnimals) * 100).toFixed(1) : 0}%
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </CardContent>
                 </Card>
-            </div>
 
-            {/* Lista de Animais por Categoria */}
-            {totalAnimals === 0 && (
-                <Card>
-                    <CardContent className="text-center py-8">
-                        <Beef className="w-12 h-12 text-gray-400 mx-auto mb-4"/>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Rebanho Vazio</h3>
-                        <p className="text-gray-600 mb-4">
-                            Você ainda não cadastrou nenhum animal no sistema.
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            Use o botão "Novo Animal" ou "Importar" para começar.
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
+                {/* Lista de Animais por Categoria */}
+                {totalAnimals === 0 && (
+                    <Card>
+                        <CardContent className="text-center py-8">
+                            <Beef className="w-12 h-12 text-gray-400 mx-auto mb-4"/>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Rebanho Vazio</h3>
+                            <p className="text-gray-600 mb-4">
+                                Você ainda não cadastrou nenhum animal no sistema.
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                Use o botão "Novo Animal" ou "Importar" para começar.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 };
