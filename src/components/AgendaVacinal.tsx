@@ -13,6 +13,7 @@ import { useAnimals } from '@/hooks/useAnimals';
 import { useEvents } from '@/hooks/useEvents';
 import ImportVaccinations from './ImportVaccinations';
 import VaccinationForm from './VaccinationForm';
+import EditVaccinationButton from './EditVaccinationButton';
 import ScheduleVaccination from './ScheduleVaccination';
 import MarkAsAppliedForm from './MarkAsAppliedForm';
 import UnmarkAppliedForm from './UnmarkAppliedForm';
@@ -406,8 +407,11 @@ const AgendaVacinal = () => {
                           </>
                         )}
                         
-                        {/* Botões de ação */}
+                         {/* Botões de ação */}
                         <div className="mt-3 flex justify-end gap-2">
+                          {!vaccination.isScheduled && 'user_id' in vaccination && (
+                            <EditVaccinationButton vaccination={vaccination as any} />
+                          )}
                           {(vaccination.status === 'overdue' || vaccination.status === 'upcoming') && !(vaccination as any).completed && (
                             <MarkAsAppliedForm 
                               vaccination={vaccination.isScheduled ? undefined : vaccination}

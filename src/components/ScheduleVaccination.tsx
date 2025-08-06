@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Calendar, Syringe } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,8 @@ import { toast } from 'sonner';
 
 const ScheduleVaccination = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [scheduleSecondDose, setScheduleSecondDose] = useState(false);
+  const [manualSecondDoseDate, setManualSecondDoseDate] = useState('');
   const [formData, setFormData] = useState({
     animal_id: '',
     vaccine_type_id: '',
@@ -64,6 +67,38 @@ const ScheduleVaccination = () => {
       };
 
       await createEvent(eventData);
+
+      // Agendar segunda dose se solicitado
+      if (scheduleSecondDose) {
+        const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
+        
+        if (selectedVaccineType) {
+          let secondDoseDate = manualSecondDoseDate;
+          
+          // Se não foi definida data manual, calcular automaticamente
+          if (!secondDoseDate && selectedVaccineType.interval_months) {
+            const scheduledDate = new Date(formData.scheduled_date);
+            const nextDate = new Date(scheduledDate);
+            nextDate.setMonth(nextDate.getMonth() + selectedVaccineType.interval_months);
+            secondDoseDate = nextDate.toISOString().split('T')[0];
+          }
+          
+          if (secondDoseDate) {
+            const secondDoseEventData = {
+              title: `Segunda Dose: ${selectedVaccineType.name}`,
+              description: `Aplicar segunda dose da vacina ${selectedVaccineType.name} no animal ${animal.name || `Brinco ${animal.tag}`}`,
+              date: secondDoseDate,
+              time: '08:00',
+              type: 'vaccination',
+              icon: '💉',
+              completed: false
+            };
+            
+            await createEvent(secondDoseEventData);
+            toast.success('Segunda dose agendada automaticamente!');
+          }
+        }
+      }
       
       // Resetar formulário
       setFormData({
@@ -75,6 +110,8 @@ const ScheduleVaccination = () => {
         responsible: '',
         notes: ''
       });
+      setScheduleSecondDose(false);
+      setManualSecondDoseDate('');
       
       setIsOpen(false);
       toast.success('Vacinação agendada com sucesso!');
@@ -90,6 +127,18 @@ const ScheduleVaccination = () => {
 
   // Data mínima é hoje
   const today = new Date().toISOString().split('T')[0];
+  
+  const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
+  const hasInterval = selectedVaccineType?.interval_months;
+
+  // Calcular data automática da segunda dose
+  const getAutomaticSecondDoseDate = () => {
+    if (!hasInterval || !formData.scheduled_date) return '';
+    const scheduledDate = new Date(formData.scheduled_date);
+    const nextDate = new Date(scheduledDate);
+    nextDate.setMonth(nextDate.getMonth() + hasInterval);
+    return nextDate.toISOString().split('T')[0];
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -213,6 +262,42 @@ const ScheduleVaccination = () => {
               rows={3}
             />
           </div>
+
+          {/* Agendamento da Segunda Dose */}
+          {hasInterval && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="schedule-second-dose"
+                  checked={scheduleSecondDose}
+                  onCheckedChange={(checked) => setScheduleSecondDose(checked === true)}
+                />
+                <Label htmlFor="schedule-second-dose" className="text-sm font-medium">
+                  Agendar segunda dose automaticamente
+                </Label>
+              </div>
+              
+              {scheduleSecondDose && (
+                <div className="ml-6 space-y-3">
+                  <div className="text-sm text-muted-foreground">
+                    Data automática: {getAutomaticSecondDoseDate() && new Date(getAutomaticSecondDoseDate()).toLocaleDateString('pt-BR')}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-second-dose">Ou escolha uma data personalizada:</Label>
+                    <Input
+                      id="manual-second-dose"
+                      type="date"
+                      min={formData.scheduled_date}
+                      value={manualSecondDoseDate}
+                      onChange={(e) => setManualSecondDoseDate(e.target.value)}
+                      placeholder="Data personalizada para segunda dose"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <Alert>
             <Calendar className="h-4 w-4" />

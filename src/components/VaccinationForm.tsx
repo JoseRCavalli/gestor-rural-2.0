@@ -1,30 +1,41 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Syringe, User, FileText, AlertTriangle } from 'lucide-react';
+import { Calendar, Syringe, User, FileText, AlertTriangle, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
+import { useEvents } from '@/hooks/useEvents';
 import { toast } from 'sonner';
+import { Vaccination } from '@/types/database';
 
-const VaccinationForm = () => {
-  const { addVaccination, vaccineTypes } = useVaccinations();
+interface VaccinationFormProps {
+  vaccination?: Vaccination;
+  isEdit?: boolean;
+}
+
+const VaccinationForm = ({ vaccination, isEdit = false }: VaccinationFormProps) => {
+  const { addVaccination, updateVaccination, vaccineTypes } = useVaccinations();
   const { animals } = useAnimals();
+  const { createEvent } = useEvents();
   const [isOpen, setIsOpen] = useState(false);
+  const [scheduleSecondDose, setScheduleSecondDose] = useState(false);
+  const [manualSecondDoseDate, setManualSecondDoseDate] = useState('');
   const [formData, setFormData] = useState({
-    animal_id: '',
-    vaccine_type_id: '',
-    application_date: '',
-    batch_number: '',
-    manufacturer: '',
-    responsible: '',
-    notes: ''
+    animal_id: vaccination?.animal_id || '',
+    vaccine_type_id: vaccination?.vaccine_type_id || '',
+    application_date: vaccination?.application_date || '',
+    batch_number: vaccination?.batch_number || '',
+    manufacturer: vaccination?.manufacturer || '',
+    responsible: vaccination?.responsible || '',
+    notes: vaccination?.notes || ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,21 +47,65 @@ const VaccinationForm = () => {
     }
 
     try {
-      await addVaccination(formData);
-      setFormData({
-        animal_id: '',
-        vaccine_type_id: '',
-        application_date: '',
-        batch_number: '',
-        manufacturer: '',
-        responsible: '',
-        notes: ''
-      });
+      if (isEdit && vaccination) {
+        await updateVaccination(vaccination.id, formData);
+        toast.success('Vacinação atualizada com sucesso!');
+      } else {
+        await addVaccination(formData);
+        toast.success('Vacinação cadastrada com sucesso!');
+      }
+
+      // Agendar segunda dose se solicitado
+      if (scheduleSecondDose && !isEdit) {
+        const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
+        const animal = animals.find(a => a.id === formData.animal_id);
+        
+        if (selectedVaccineType && animal) {
+          let secondDoseDate = manualSecondDoseDate;
+          
+          // Se não foi definida data manual, calcular automaticamente
+          if (!secondDoseDate && selectedVaccineType.interval_months) {
+            const applicationDate = new Date(formData.application_date);
+            const nextDate = new Date(applicationDate);
+            nextDate.setMonth(nextDate.getMonth() + selectedVaccineType.interval_months);
+            secondDoseDate = nextDate.toISOString().split('T')[0];
+          }
+          
+          if (secondDoseDate) {
+            const eventData = {
+              title: `Segunda Dose: ${selectedVaccineType.name}`,
+              description: `Aplicar segunda dose da vacina ${selectedVaccineType.name} no animal ${animal.name || `Brinco ${animal.tag}`}`,
+              date: secondDoseDate,
+              time: '08:00',
+              type: 'vaccination',
+              icon: '💉',
+              completed: false
+            };
+            
+            await createEvent(eventData);
+            toast.success('Segunda dose agendada automaticamente!');
+          }
+        }
+      }
+
+      if (!isEdit) {
+        setFormData({
+          animal_id: '',
+          vaccine_type_id: '',
+          application_date: '',
+          batch_number: '',
+          manufacturer: '',
+          responsible: '',
+          notes: ''
+        });
+        setScheduleSecondDose(false);
+        setManualSecondDoseDate('');
+      }
+      
       setIsOpen(false);
-      toast.success('Vacinação cadastrada com sucesso!');
     } catch (error) {
-      console.error('Error adding vaccination:', error);
-      toast.error('Erro ao cadastrar vacinação');
+      console.error('Error saving vaccination:', error);
+      toast.error(isEdit ? 'Erro ao atualizar vacinação' : 'Erro ao cadastrar vacinação');
     }
   };
 
@@ -58,22 +113,34 @@ const VaccinationForm = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
+  const hasInterval = selectedVaccineType?.interval_months;
+
+  // Calcular data automática da segunda dose
+  const getAutomaticSecondDoseDate = () => {
+    if (!hasInterval || !formData.application_date) return '';
+    const applicationDate = new Date(formData.application_date);
+    const nextDate = new Date(applicationDate);
+    nextDate.setMonth(nextDate.getMonth() + hasInterval);
+    return nextDate.toISOString().split('T')[0];
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center space-x-2 bg-green-600 hover:bg-green-700">
-          <Syringe className="w-4 h-4" />
-          <span>Cadastrar Vacinação</span>
+        <Button className={`flex items-center space-x-2 ${isEdit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}>
+          {isEdit ? <Edit3 className="w-4 h-4" /> : <Syringe className="w-4 h-4" />}
+          <span>{isEdit ? 'Editar' : 'Cadastrar Vacinação'}</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Syringe className="w-5 h-5 text-green-600" />
-            <span>Cadastrar Nova Vacinação</span>
+            {isEdit ? <Edit3 className="w-5 h-5 text-blue-600" /> : <Syringe className="w-5 h-5 text-green-600" />}
+            <span>{isEdit ? 'Editar Vacinação' : 'Cadastrar Nova Vacinação'}</span>
           </DialogTitle>
           <DialogDescription>
-            Registre uma nova vacinação aplicada no rebanho
+            {isEdit ? 'Atualize os dados da vacinação' : 'Registre uma nova vacinação aplicada no rebanho'}
           </DialogDescription>
         </DialogHeader>
 
@@ -187,23 +254,61 @@ const VaccinationForm = () => {
             />
           </div>
 
+          {/* Agendamento da Segunda Dose */}
+          {!isEdit && hasInterval && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="schedule-second-dose"
+                  checked={scheduleSecondDose}
+                  onCheckedChange={(checked) => setScheduleSecondDose(checked === true)}
+                />
+                <Label htmlFor="schedule-second-dose" className="text-sm font-medium">
+                  Agendar segunda dose automaticamente
+                </Label>
+              </div>
+              
+              {scheduleSecondDose && (
+                <div className="ml-6 space-y-3">
+                  <div className="text-sm text-muted-foreground">
+                    Data automática: {getAutomaticSecondDoseDate() && new Date(getAutomaticSecondDoseDate()).toLocaleDateString('pt-BR')}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-second-dose">Ou escolha uma data personalizada:</Label>
+                    <Input
+                      id="manual-second-dose"
+                      type="date"
+                      min={formData.application_date}
+                      value={manualSecondDoseDate}
+                      onChange={(e) => setManualSecondDoseDate(e.target.value)}
+                      placeholder="Data personalizada para segunda dose"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Alerta sobre próxima dose */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-start space-x-2">
-              <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium">Próxima dose automática</p>
-                <p>Se a vacina selecionada tiver intervalo definido, a próxima dose será calculada automaticamente e aparecerá nos alertas.</p>
+          {!scheduleSecondDose && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Próxima dose automática</p>
+                  <p>Se a vacina selecionada tiver intervalo definido, a próxima dose será calculada automaticamente e aparecerá nos alertas.</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="flex justify-end space-x-3">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" className="bg-green-600 hover:bg-green-700">
-              Cadastrar Vacinação
+            <Button type="submit" className={isEdit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}>
+              {isEdit ? 'Atualizar Vacinação' : 'Cadastrar Vacinação'}
             </Button>
           </div>
         </form>
