@@ -1,6 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Clock, AlertTriangle, CheckCircle, Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,10 +19,54 @@ import UnmarkAppliedForm from './UnmarkAppliedForm';
 import VaccinationNotifications from './VaccinationNotifications';
 
 const AgendaVacinal = () => {
-  const { vaccinations, vaccineTypes, loading } = useVaccinations();
-  const { animals } = useAnimals();
-  const { events } = useEvents();
+  const { vaccinations, vaccineTypes, loading, refetch: refetchVaccinations } = useVaccinations();
+  const { animals, refetch: refetchAnimals } = useAnimals();
+  const { events, refetch: refetchEvents } = useEvents();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'overdue' | 'upcoming' | 'completed'>('all');
+
+  // Configurar real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('agenda-vacinal-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vaccinations'
+        },
+        () => {
+          refetchVaccinations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        () => {
+          refetchEvents();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'animals'
+        },
+        () => {
+          refetchAnimals();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetchVaccinations, refetchEvents, refetchAnimals]);
 
   const today = new Date().toISOString().split('T')[0];
 

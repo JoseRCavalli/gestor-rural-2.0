@@ -207,6 +207,9 @@ export const useVaccinations = () => {
     updateVaccination,
     deleteVaccination,
     markAsApplied,
-    refetch: fetchVaccinations
+    refetch: () => {
+      fetchVaccinations();
+      fetchVaccineTypes();
+    }
   };
 };
