@@ -147,7 +147,7 @@ const HerdStats = () => {
                             {Object.entries(reproductiveStats).map(([status, count]) => (
                                 <div key={status} className="text-center p-4 rounded-lg border">
                                     <Badge className={`mb-2 ${getStatusColor(status)}`}>
-                                        {maskValueReproductiveStatus(status)}
+                                        {maskValueReproductiveStatus(status as any)}
                                     </Badge>
                                     <div className="text-2xl font-bold text-gray-900">{count}</div>
                                     <div className="text-xs text-gray-500">
@@ -204,7 +204,7 @@ const HerdStats = () => {
                             {Object.entries(phaseStats).map(([status, count]) => (
                                 <div key={status} className="text-center p-4 rounded-lg border">
                                     <Badge className={`mb-2 ${getStatusColor(status)}`}>
-                                        {maskValueAnimalPhase(status)}
+                                        {maskValueAnimalPhase(status as any)}
                                     </Badge>
                                     <div className="text-2xl font-bold text-gray-900">{count}</div>
                                     <div className="text-xs text-gray-500">

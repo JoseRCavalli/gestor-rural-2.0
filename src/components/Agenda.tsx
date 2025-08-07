@@ -87,13 +87,14 @@ const Agenda = () => {
     return eventDate >= todayNormalized && eventDate <= nextWeekNormalized && !event.completed;
   }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // Past events (last 30 days)
+  // Past events (last 30 days) - including completed events
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
   const pastEvents = allEvents.filter(event => {
     const eventDate = new Date(event.date + 'T00:00:00');
     const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const thirtyDaysAgoNormalized = new Date(thirtyDaysAgo.getFullYear(), thirtyDaysAgo.getMonth(), thirtyDaysAgo.getDate());
-    return eventDate < todayNormalized && eventDate >= thirtyDaysAgoNormalized;
+    // Include completed events or events from past dates
+    return (eventDate < todayNormalized && eventDate >= thirtyDaysAgoNormalized) || event.completed;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Overdue events

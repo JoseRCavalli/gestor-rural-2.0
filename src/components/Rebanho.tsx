@@ -130,7 +130,7 @@ const Rebanho = () => {
                         >
                             {phases.map((phase: string) => (
                                 <option key={phase} value={phase}>
-                                    {maskValueAnimalPhase(phase)}
+                                    {maskValueAnimalPhase(phase as any)}
                                 </option>
                             ))}
                         </select>
@@ -155,7 +155,7 @@ const Rebanho = () => {
                                         <div className="flex-1">
                                             <h3 className="font-medium text-gray-800">{animal.name}</h3>
                                             <p className="text-sm text-gray-600">Código: {animal.tag}</p>
-                                            <p className="text-sm text-gray-600">Fase: {maskValueAnimalPhase(animal.phase)}</p>
+                                            <p className="text-sm text-gray-600">Fase: {maskValueAnimalPhase(animal.phase as any)}</p>
                                             <p className="text-sm text-gray-600">
                                                 Nascimento: {formatDateBR(animal.birth_date)}
                                             </p>
