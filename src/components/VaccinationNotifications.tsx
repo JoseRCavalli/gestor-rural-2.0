@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
 import { useEvents } from '@/hooks/useEvents';
@@ -8,11 +8,26 @@ export const useVaccinationNotifications = () => {
   const { vaccinations, vaccineTypes } = useVaccinations();
   const { animals } = useAnimals();
   const { events } = useEvents();
-  const { createNotification } = useNotifications();
+  const { createNotification, notifications } = useNotifications();
+  const lastCheckRef = useRef<string>('');
 
   useEffect(() => {
     const checkOverdueVaccinations = async () => {
       const today = new Date().toISOString().split('T')[0];
+      
+      // Criar uma chave única para esta verificação baseada nos dados atuais
+      const currentDataKey = JSON.stringify({
+        vaccinationsCount: vaccinations.length,
+        eventsCount: events.length,
+        date: today
+      });
+      
+      // Se os dados não mudaram desde a última verificação, não fazer nada
+      if (lastCheckRef.current === currentDataKey) {
+        return;
+      }
+      
+      lastCheckRef.current = currentDataKey;
       
       // Verificar vacinações aplicadas com próxima dose em atraso
       const overdueVaccinations = vaccinations.filter(vaccination => {
@@ -36,6 +51,15 @@ export const useVaccinationNotifications = () => {
         return daysOverdue > 0;
       });
 
+      // Verificar se já existe notificação similar antes de criar uma nova
+      const checkExistingNotification = (title: string, message: string) => {
+        return notifications.some(notification => 
+          notification.title === title && 
+          notification.message === message &&
+          !notification.read
+        );
+      };
+
       // Enviar notificações para vacinações aplicadas em atraso
       for (const vaccination of overdueVaccinations) {
         const animal = animals.find(a => a.id === vaccination.animal_id);
@@ -46,12 +70,17 @@ export const useVaccinationNotifications = () => {
           const todayDate = new Date(today + 'T00:00:00');
           const daysOverdue = Math.ceil((todayDate.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24));
           
-          await createNotification({
-            title: '⚠️ Vacinação em Atraso',
-            message: `A próxima dose de ${vaccineType.name} para ${animal.name || `Brinco ${animal.tag}`} está ${daysOverdue} dia(s) em atraso.`,
-            type: 'warning',
-            channel: 'app'
-          });
+          const title = '⚠️ Vacinação em Atraso';
+          const message = `A próxima dose de ${vaccineType.name} para ${animal.name || `Brinco ${animal.tag}`} está ${daysOverdue} dia(s) em atraso.`;
+          
+          if (!checkExistingNotification(title, message)) {
+            await createNotification({
+              title,
+              message,
+              type: 'warning',
+              channel: 'app'
+            });
+          }
         }
       }
 
@@ -61,23 +90,24 @@ export const useVaccinationNotifications = () => {
         const todayDate = new Date(today + 'T00:00:00');
         const daysOverdue = Math.ceil((todayDate.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24));
         
-        await createNotification({
-          title: '⚠️ Vacinação Agendada em Atraso',
-          message: `${event.title} estava agendada para ${new Date(event.date).toLocaleDateString('pt-BR')} e está ${daysOverdue} dia(s) em atraso.`,
-          type: 'warning',
-          channel: 'app'
-        });
+        const title = '⚠️ Vacinação Agendada em Atraso';
+        const message = `${event.title} estava agendada para ${new Date(event.date).toLocaleDateString('pt-BR')} e está ${daysOverdue} dia(s) em atraso.`;
+        
+        if (!checkExistingNotification(title, message)) {
+          await createNotification({
+            title,
+            message,
+            type: 'warning',
+            channel: 'app'
+          });
+        }
       }
     };
 
-    // Verificar a cada 1 hora
-    const interval = setInterval(checkOverdueVaccinations, 60 * 60 * 1000);
-    
-    // Verificar imediatamente
+    // Verificar apenas uma vez ao montar o componente e quando os dados mudarem
     checkOverdueVaccinations();
 
-    return () => clearInterval(interval);
-  }, [vaccinations, animals, events, vaccineTypes, createNotification]);
+  }, [vaccinations, animals, events, vaccineTypes, createNotification, notifications]);
 };
 
 export default function VaccinationNotifications() {

@@ -116,13 +116,24 @@ const Dashboard = () => {
     return vaccination.next_dose_date < today;
   });
 
-  // Vacinações recentes (últimos 30 dias)
+  // Vacinações recentes (últimos 30 dias) - considerando também eventos concluídos de vacinação
   const recentVaccinations = vaccinations.filter(vaccination => {
-    const vaccinationDate = new Date(vaccination.application_date);
+    const vaccinationDate = new Date(vaccination.application_date + 'T00:00:00');
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     return vaccinationDate >= thirtyDaysAgo;
   });
+
+  // Adicionar eventos de vacinação concluídos nos últimos 30 dias
+  const recentVaccinationEvents = events.filter(event => {
+    if (event.type !== 'vaccination' || !event.completed) return false;
+    const eventDate = new Date(event.date + 'T00:00:00');
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return eventDate >= thirtyDaysAgo;
+  });
+
+  const totalRecentVaccinations = recentVaccinations.length + recentVaccinationEvents.length;
 
   // Alertas de estoque baixo
   const lowStockItems = stockItems.filter(item => item.quantity <= item.min_stock);
@@ -402,8 +413,14 @@ const Dashboard = () => {
               <CardDescription>Últimos 30 dias</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600 mb-2">{recentVaccinations.length}</div>
+              <div className="text-2xl font-bold text-green-600 mb-2">{totalRecentVaccinations}</div>
               <p className="text-xs text-gray-500">Vacinações realizadas</p>
+              {totalRecentVaccinations > 0 && (
+                <div className="mt-2 text-xs text-gray-600">
+                  <div>Aplicadas: {recentVaccinations.length}</div>
+                  <div>Agendadas concluídas: {recentVaccinationEvents.length}</div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
