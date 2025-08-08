@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const NotificationCenter = () => {
-  const { notifications, markAsRead, deleteNotification, unreadCount, loading } = useNotifications();
+  const { notifications, markAsRead, deleteNotification, deleteAllNotifications, unreadCount, loading } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'info' | 'warning' | 'error' | 'success'>('all');
 
@@ -86,6 +86,21 @@ const NotificationCenter = () => {
             <option value="error">Erro</option>
             <option value="success">Sucesso</option>
           </select>
+
+          {notifications.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja excluir todas as notificações?')) {
+                  deleteAllNotifications();
+                }
+              }}
+              className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors flex items-center space-x-1"
+              title="Excluir todas as notificações"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Limpar Tudo</span>
+            </button>
+          )}
         </div>
       </div>
 

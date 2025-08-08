@@ -138,6 +138,13 @@ const Dashboard = () => {
   // Alertas de estoque baixo
   const lowStockItems = stockItems.filter(item => item.quantity <= item.min_stock);
 
+  // Verificar se há previsão de chuva
+  const isRainyWeather = weather?.description.toLowerCase().includes('chuva') || 
+                        weather?.description.toLowerCase().includes('chuvoso') ||
+                        weather?.description.toLowerCase().includes('precipitação') ||
+                        weather?.description.toLowerCase().includes('tempestade') ||
+                        weather?.icon === '🌧️' || weather?.icon === '⛈️';
+
   // Todos os alertas do sistema
   const allAlerts = [
     ...overdueVaccinations.map(vacc => {
@@ -159,7 +166,15 @@ const Dashboard = () => {
       title: `Estoque baixo - ${item.name}`,
       message: `${item.quantity} ${item.unit} restante(s)`,
       icon: item.quantity === 0 ? '🚨' : '⚠️'
-    }))
+    })),
+    ...(isRainyWeather && weather ? [{
+      id: 'weather-rain',
+      type: 'weather',
+      level: 'warning',
+      title: 'Previsão de Chuva',
+      message: `${weather.description} - Considere proteger os animais e verificar as instalações`,
+      icon: '🌧️'
+    }] : [])
   ];
 
   return (

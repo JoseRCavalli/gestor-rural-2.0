@@ -195,6 +195,29 @@ export const useNotifications = () => {
     }
   };
 
+  const deleteAllNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting all notifications:', error);
+        toast.error('Erro ao excluir todas as notificações');
+        return;
+      }
+
+      setNotifications([]);
+      toast.success('Todas as notificações foram excluídas');
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      toast.error('Erro ao excluir todas as notificações');
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -215,6 +238,7 @@ export const useNotifications = () => {
     createNotification,
     markAsRead,
     deleteNotification,
+    deleteAllNotifications,
     refetch: () => {
       fetchNotifications();
       fetchSettings();

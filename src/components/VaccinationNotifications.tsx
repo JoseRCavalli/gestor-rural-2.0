@@ -15,12 +15,21 @@ export const useVaccinationNotifications = () => {
     const checkOverdueVaccinations = async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      // Criar uma chave única para esta verificação baseada nos dados atuais
-      const currentDataKey = JSON.stringify({
-        vaccinationsCount: vaccinations.length,
-        eventsCount: events.length,
-        date: today
-      });
+      // Criar uma chave única baseada na data e nos IDs únicos das vacinações e eventos em atraso
+      const overdueVaccinationIds = vaccinations
+        .filter(vaccination => vaccination.next_dose_date && vaccination.next_dose_date < today)
+        .map(v => v.id)
+        .sort();
+      
+      const overdueEventIds = events
+        .filter(event => {
+          if (event.type !== 'vaccination' || event.completed) return false;
+          return event.date < today;
+        })
+        .map(e => e.id)
+        .sort();
+      
+      const currentDataKey = `${today}-${overdueVaccinationIds.join(',')}-${overdueEventIds.join(',')}`;
       
       // Se os dados não mudaram desde a última verificação, não fazer nada
       if (lastCheckRef.current === currentDataKey) {
