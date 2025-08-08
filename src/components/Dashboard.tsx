@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
@@ -24,6 +24,7 @@ import { useCommodities } from '@/hooks/useCommodities';
 import { useStock } from '@/hooks/useStock';
 import { useAuth } from '@/hooks/useAuth';
 import StockAlerts from './StockAlerts';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const Dashboard = () => {
   const { animals } = useAnimals();
@@ -66,13 +67,14 @@ const Dashboard = () => {
     return profile.name.split(' ')[0];
   };
 
-  // Estatísticas dos animais
+  // Estatísticas dos animais (normalizando fases)
+  const phaseOf = (a: any) => (a.phase || '').toUpperCase().replace(/\s+/g, '_');
   const animalStats = {
     total: animals.length,
-    bezerra: animals.filter(a => a.phase === 'bezerra').length,
-    novilha: animals.filter(a => a.phase === 'novilha').length,
-    vaca_lactante: animals.filter(a => a.phase === 'vaca_lactante').length,
-    vaca_seca: animals.filter(a => a.phase === 'vaca_seca').length,
+    bezerra: animals.filter(a => phaseOf(a) === 'BEZERRA').length,
+    novilha: animals.filter(a => phaseOf(a) === 'NOVILHA').length,
+    vaca_lactante: animals.filter(a => phaseOf(a) === 'LACTACAO' || phaseOf(a) === 'VACA_LACTANTE').length,
+    vaca_seca: animals.filter(a => phaseOf(a) === 'VACA_SECA').length,
   };
 
   // Eventos próximos (próximos 7 dias) - Integração completa com agenda
@@ -138,14 +140,76 @@ const Dashboard = () => {
   // Alertas de estoque baixo
   const lowStockItems = stockItems.filter(item => item.quantity <= item.min_stock);
 
-  // Verificar se há previsão de chuva
-  const isRainyWeather = weather?.description.toLowerCase().includes('chuva') || 
-                        weather?.description.toLowerCase().includes('chuvoso') ||
-                        weather?.description.toLowerCase().includes('precipitação') ||
-                        weather?.description.toLowerCase().includes('tempestade') ||
-                        weather?.icon === '🌧️' || weather?.icon === '⛈️';
+  // Condições climáticas detectadas
+  const desc = (weather?.description || '').toLowerCase();
+  const isRainyWeather = desc.includes('chuva') || desc.includes('chuvoso') || desc.includes('precipitação') || desc.includes('tempestade') || weather?.icon === '🌧️' || weather?.icon === '⛈️';
+  const isFrostWeather = desc.includes('geada') || desc.includes('neve') || weather?.icon === '❄️' || weather?.icon === '🌨️';
+  const isStormyWeather = desc.includes('tempestade') || desc.includes('trovoada') || desc.includes('toró') || weather?.icon === '⛈️';
+  const isWindyWeather = desc.includes('vento') || weather?.icon === '💨' || weather?.icon === '🌬️';
+  const isFoggyWeather = desc.includes('neblina') || desc.includes('nevoeiro') || weather?.icon === '🌫️';
+  const isHeatAlert = (weather?.temperature || 0) >= 35 || desc.includes('onda de calor') || desc.includes('calor') || desc.includes('quente');
+  const isColdAlert = (weather?.temperature || 99) <= 3 || desc.includes('frio');
 
   // Todos os alertas do sistema
+  const weatherAlerts = [
+    ...(isRainyWeather && weather ? [{
+      id: 'weather-rain',
+      type: 'weather',
+      level: 'warning',
+      title: 'Previsão de Chuva',
+      message: `${weather.description} - Considere proteger os animais e verificar as instalações`,
+      icon: '🌧️'
+    }] : []),
+    ...(isFrostWeather && weather ? [{
+      id: 'weather-frost',
+      type: 'weather',
+      level: 'critical',
+      title: 'Risco de Geada',
+      message: `${weather.description} - Proteja bezerros e verifique a água e pastagens`,
+      icon: '❄️'
+    }] : []),
+    ...(isStormyWeather && weather ? [{
+      id: 'weather-storm',
+      type: 'weather',
+      level: 'warning',
+      title: 'Tempestade',
+      message: `${weather.description} - Reforce instalações e abrigos`,
+      icon: '⛈️'
+    }] : []),
+    ...(isWindyWeather && weather ? [{
+      id: 'weather-wind',
+      type: 'weather',
+      level: 'warning',
+      title: 'Ventos Fortes',
+      message: `${weather.description} - Verifique cercas e telhados`,
+      icon: '💨'
+    }] : []),
+    ...(isFoggyWeather && weather ? [{
+      id: 'weather-fog',
+      type: 'weather',
+      level: 'warning',
+      title: 'Neblina',
+      message: `${weather.description} - Atenção no deslocamento e manejo`,
+      icon: '🌫️'
+    }] : []),
+    ...(isHeatAlert && weather ? [{
+      id: 'weather-heat',
+      type: 'weather',
+      level: 'warning',
+      title: 'Calor Intenso',
+      message: `Temperatura ${weather.temperature}°C - Garanta sombra e água fresca`,
+      icon: '🔥'
+    }] : []),
+    ...(isColdAlert && weather ? [{
+      id: 'weather-cold',
+      type: 'weather',
+      level: 'warning',
+      title: 'Frio Intenso',
+      message: `Temperatura ${weather.temperature}°C - Reforce abrigos e manejo`,
+      icon: '🥶'
+    }] : [])
+  ];
+
   const allAlerts = [
     ...overdueVaccinations.map(vacc => {
       const animal = animals.find(a => a.id === vacc.animal_id);
@@ -167,15 +231,32 @@ const Dashboard = () => {
       message: `${item.quantity} ${item.unit} restante(s)`,
       icon: item.quantity === 0 ? '🚨' : '⚠️'
     })),
-    ...(isRainyWeather && weather ? [{
-      id: 'weather-rain',
-      type: 'weather',
-      level: 'warning',
-      title: 'Previsão de Chuva',
-      message: `${weather.description} - Considere proteger os animais e verificar as instalações`,
-      icon: '🌧️'
-    }] : [])
+    ...weatherAlerts
   ];
+
+  // Envie notificações para clima e estoque (sem duplicar)
+  const { createNotificationOnce } = useNotifications();
+
+  useEffect(() => {
+    if (!weather) return;
+    weatherAlerts.forEach(alert => {
+      createNotificationOnce({
+        title: alert.title,
+        message: alert.message,
+        type: alert.level === 'critical' ? 'error' : 'warning',
+      });
+    });
+  }, [weather?.description, weather?.temperature]);
+
+  useEffect(() => {
+    lowStockItems.forEach(item => {
+      createNotificationOnce({
+        title: `Estoque baixo - ${item.name}`,
+        message: `${item.quantity} ${item.unit} restante(s)`,
+        type: item.quantity === 0 ? 'error' : 'warning',
+      });
+    });
+  }, [stockItems]);
 
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">

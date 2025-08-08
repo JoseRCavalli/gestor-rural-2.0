@@ -151,6 +151,23 @@ export const useNotifications = () => {
     }
   };
 
+  // Garante que não haja notificações duplicadas no mesmo dia com mesmo título e mensagem
+  const createNotificationOnce = async (notification: {
+    title: string;
+    message: string;
+    type?: 'info' | 'warning' | 'error' | 'success';
+    channel?: 'app' | 'email' | 'whatsapp';
+  }) => {
+    const todayStr = new Date().toDateString();
+    const exists = notifications.some(n =>
+      n.title === notification.title &&
+      n.message === notification.message &&
+      new Date(n.created_at).toDateString() === todayStr
+    );
+    if (exists) return;
+    return await createNotification(notification);
+  };
+
   const markAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
@@ -236,6 +253,7 @@ export const useNotifications = () => {
     fetchNotifications,
     updateSettings,
     createNotification,
+    createNotificationOnce,
     markAsRead,
     deleteNotification,
     deleteAllNotifications,
