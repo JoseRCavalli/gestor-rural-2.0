@@ -15,13 +15,12 @@ export interface Event {
   user_id: string;
   title: string;
   description?: string;
-  date: string;
-  time: string;
   type?: string;
   icon?: string;
   completed?: boolean;
   created_at: string;
   updated_at: string;
+  date: string;
 }
 
 export interface StockItem {
