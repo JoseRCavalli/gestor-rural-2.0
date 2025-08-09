@@ -246,7 +246,7 @@ const Dashboard = () => {
         type: alert.level === 'critical' ? 'error' : 'warning',
       });
     });
-  }, [weather?.description, weather?.temperature]);
+  }, [weather?.description, weather?.temperature, createNotificationOnce]);
 
   useEffect(() => {
     lowStockItems.forEach(item => {
@@ -256,7 +256,7 @@ const Dashboard = () => {
         type: item.quantity === 0 ? 'error' : 'warning',
       });
     });
-  }, [stockItems]);
+  }, [stockItems, createNotificationOnce]);
 
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">

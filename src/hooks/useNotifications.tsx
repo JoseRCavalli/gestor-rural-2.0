@@ -169,7 +169,7 @@ export const useNotifications = () => {
     }
   };
 
-  // Garante que não haja notificações duplicadas no mesmo dia com mesmo título e mensagem
+  // Garante que não haja notificações duplicadas no mesmo dia com mesmo título e tipo
   const createNotificationOnce = async (notification: {
     title: string;
     message: string;
@@ -179,7 +179,7 @@ export const useNotifications = () => {
     const todayStr = new Date().toDateString();
     const exists = notifications.some(n =>
       n.title === notification.title &&
-      n.message === notification.message &&
+      n.type === (notification.type || 'info') &&
       new Date(n.created_at).toDateString() === todayStr
     );
     if (exists) return;
