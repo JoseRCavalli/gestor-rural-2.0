@@ -2,6 +2,7 @@ import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {
     Beef,
+    PawPrint,
     Heart,
     Calendar,
     TrendingUp,
@@ -83,7 +84,7 @@ const HerdStats = () => {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total de Animais</CardTitle>
-                        <Beef className="h-4 w-4 text-green-600"/>
+                        <PawPrint className="h-4 w-4 text-green-600"/>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalAnimals}</div>

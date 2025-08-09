@@ -212,26 +212,9 @@ const Configuracoes = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fuso Horário
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option>Brasília (UTC-3)</option>
-                <option>Manaus (UTC-4)</option>
-                <option>Acre (UTC-5)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Formato de Data
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option>DD/MM/AAAA</option>
-                <option>MM/DD/AAAA</option>
-                <option>AAAA-MM-DD</option>
-              </select>
+            {/* Fuso horário e formato de data são fixos para Brasil */}
+            <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
+              Fuso horário: Brasília (UTC-3) • Formato de data: DD/MM/AAAA
             </div>
           </div>
         </motion.div>

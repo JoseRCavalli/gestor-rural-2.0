@@ -5,11 +5,29 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { NotificationSettings, Notification } from '@/types/database';
 
+// Global caches and pub-sub to keep notifications/settings in sync across hook instances
+let notificationsCache: Notification[] = [];
+let settingsCache: NotificationSettings | null = null;
+const subscribers = new Set<() => void>();
+const emit = () => subscribers.forEach((cb) => cb());
+
 export const useNotifications = () => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  const [notifications, setNotificationsState] = useState<Notification[]>(notificationsCache);
+  const [settings, setSettingsState] = useState<NotificationSettings | null>(settingsCache);
   const [loading, setLoading] = useState(true);
+
+  // Local setters that also update global cache and notify subscribers
+  const setNotifications = (next: Notification[]) => {
+    notificationsCache = next;
+    setNotificationsState(next);
+    emit();
+  };
+  const setSettings = (next: NotificationSettings | null) => {
+    settingsCache = next;
+    setSettingsState(next);
+    emit();
+  };
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -144,11 +162,28 @@ export const useNotifications = () => {
 
       const typedNotification = data;
 
-      setNotifications(prev => [typedNotification, ...prev]);
+      setNotifications([typedNotification, ...notificationsCache]);
       return typedNotification;
     } catch (error) {
       console.error('Error creating notification:', error);
     }
+  };
+
+  // Garante que não haja notificações duplicadas no mesmo dia com mesmo título e tipo
+  const createNotificationOnce = async (notification: {
+    title: string;
+    message: string;
+    type?: 'info' | 'warning' | 'error' | 'success';
+    channel?: 'app' | 'email' | 'whatsapp';
+  }) => {
+    const todayStr = new Date().toDateString();
+    const exists = notifications.some(n =>
+      n.title === notification.title &&
+      n.type === (notification.type || 'info') &&
+      new Date(n.created_at).toDateString() === todayStr
+    );
+    if (exists) return;
+    return await createNotification(notification);
   };
 
   const markAsRead = async (notificationId: string) => {
@@ -164,11 +199,9 @@ export const useNotifications = () => {
         return;
       }
 
-      setNotifications(prev =>
-        prev.map(notif =>
-          notif.id === notificationId ? { ...notif, read: true } : notif
-        )
-      );
+      setNotifications(notificationsCache.map(notif =>
+        notif.id === notificationId ? { ...notif, read: true } : notif
+      ));
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -187,11 +220,34 @@ export const useNotifications = () => {
         return;
       }
 
-      setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+      setNotifications(notificationsCache.filter(notif => notif.id !== notificationId));
       toast.success('Notificação excluída');
     } catch (error) {
       console.error('Error deleting notification:', error);
       toast.error('Erro ao excluir notificação');
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting all notifications:', error);
+        toast.error('Erro ao excluir todas as notificações');
+        return;
+      }
+
+      setNotifications([]);
+      toast.success('Todas as notificações foram excluídas');
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      toast.error('Erro ao excluir todas as notificações');
     }
   };
 
@@ -201,7 +257,58 @@ export const useNotifications = () => {
       fetchSettings();
     }
     setLoading(false);
+
+    // Subscribe to realtime changes for notifications and settings (per user)
+    if (!user) return;
+    const channel = supabase
+      .channel(`notifications-realtime-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+        try {
+          if (payload.eventType === 'INSERT') {
+            const newNotif = payload.new as Notification;
+            setNotifications([newNotif, ...notificationsCache.filter(n => n.id !== newNotif.id)]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Notification;
+            setNotifications(notificationsCache.map(n => n.id === updated.id ? updated : n));
+          } else if (payload.eventType === 'DELETE') {
+            const oldId = (payload.old as any)?.id;
+            if (oldId) setNotifications(notificationsCache.filter(n => n.id !== oldId));
+          }
+        } catch (e) {
+          console.error('Realtime notifications handler error:', e);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notification_settings', filter: `user_id=eq.${user.id}` }, (payload) => {
+        try {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            setSettings(payload.new as NotificationSettings);
+          } else if (payload.eventType === 'DELETE') {
+            setSettings(null);
+          }
+        } catch (e) {
+          console.error('Realtime settings handler error:', e);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
+
+  // Keep local state in sync with global cache
+  useEffect(() => {
+    const listener = () => {
+      setNotificationsState(notificationsCache);
+      setSettingsState(settingsCache);
+    };
+    subscribers.add(listener);
+    // Initialize immediately
+    listener();
+    return () => {
+      subscribers.delete(listener);
+    };
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -213,8 +320,10 @@ export const useNotifications = () => {
     fetchNotifications,
     updateSettings,
     createNotification,
+    createNotificationOnce,
     markAsRead,
     deleteNotification,
+    deleteAllNotifications,
     refetch: () => {
       fetchNotifications();
       fetchSettings();
