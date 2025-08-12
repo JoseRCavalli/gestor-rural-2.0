@@ -117,7 +117,6 @@ const Agenda = () => {
         title: eventForm.title,
         description: eventForm.description,
         date: eventForm.date,
-        time: eventForm.time,
         type: eventForm.type,
         icon: eventForm.icon,
         completed: false
@@ -448,7 +447,6 @@ const Agenda = () => {
                             {event.description && (
                               <p className="text-sm text-gray-600 mt-1">{event.description}</p>
                             )}
-                            <p className="text-xs text-gray-500 mt-1">{event.time}</p>
                           </div>
                         </div>
                         {event.completed && (
@@ -506,9 +504,6 @@ const Agenda = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">
-                        {formatDateForDisplay(event.date)} às {event.time}
-                      </p>
                     </div>
                     <Badge variant="secondary" className="text-xs">
                       {Math.ceil((new Date(event.date + 'T00:00:00').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dia(s)
@@ -561,9 +556,6 @@ const Agenda = () => {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500">
-                        {formatDateForDisplay(event.date)} às {event.time}
-                      </p>
                     </div>
                     <Badge variant="outline" className="text-xs opacity-70">
                       Concluído

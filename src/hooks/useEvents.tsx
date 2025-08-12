@@ -42,7 +42,6 @@ export const useEvents = () => {
             const eventToInsert = {
                 ...eventData,
                 user_id: user.id,
-                date: eventData.date,
             }
 
             const {data, error} = await supabase
@@ -53,7 +52,7 @@ export const useEvents = () => {
 
             if (error) {
                 console.error('Error creating event:', error);
-                toast.error('Erro ao criar evento: ' + error.message);
+                toast.error('Erro ao criar evento2: ' + error.message);
                 return;
             }
 

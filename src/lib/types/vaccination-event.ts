@@ -1,7 +1,7 @@
 export type VaccinationEvent = {
     title: string;
     description: string;
-    date: Date;
+    date: string;
     type: string
     icon: string;
     completed: boolean;

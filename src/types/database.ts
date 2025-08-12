@@ -8,6 +8,7 @@ export interface Animal {
   phase: string;
   created_at: string;
   updated_at: string;
+  batch: string;
 }
 
 export interface Event {
@@ -58,7 +59,6 @@ export interface Vaccination {
   vaccine_type_id: string;
   application_date: string;
   next_dose_date?: string;
-  batch_number?: string;
   manufacturer?: string;
   responsible?: string;
   notes?: string;

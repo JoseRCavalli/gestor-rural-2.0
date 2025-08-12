@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Calendar, Search, Syringe} from 'lucide-react';
+import {Calendar, Check, Search, Syringe} from 'lucide-react';
 import {Checkbox} from '@/components/ui/checkbox';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -21,13 +21,13 @@ import {useEvents} from '@/hooks/useEvents';
 import {toast} from 'sonner';
 import {parseFormScope, VaccinationScheduleFormScope} from "@/lib/types/vaccination-schedule-form-scope.ts";
 import {VaccinationEvent} from "@/lib/types/vaccination-event.ts";
-import {VaccineType} from "@/types/database.ts";
+import {Animal, VaccineType} from "@/types/database.ts";
 
 const ScheduleVaccination = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [scheduleSecondDose, setScheduleSecondDose] = useState(false);
     const [manualSecondDoseDate, setManualSecondDoseDate] = useState('');
-    const [scope, setScope] = useState<VaccinationScheduleFormScope>(VaccinationScheduleFormScope.ANIMAL);
+    const [scope, setScope] = useState<VaccinationScheduleFormScope>(VaccinationScheduleFormScope.BATCH);
     const [formData, setFormData] = useState({
         animal_id: '',
         vaccine_type_id: '',
@@ -37,10 +37,18 @@ const ScheduleVaccination = () => {
         responsible: '',
         notes: ''
     });
+    const [validBatch, setValidBatch] = useState(false);
 
     const {vaccineTypes} = useVaccinations();
-    const {animals, fetchAnimalsByBatch} = useAnimals();
+    const {animals} = useAnimals();
     const {createEvent} = useEvents();
+
+    // Data mínima é hoje
+    const today = new Date().toISOString().split('T')[0];
+
+    const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
+    const hasInterval = selectedVaccineType?.interval_months;
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,44 +63,20 @@ const ScheduleVaccination = () => {
         }
 
         try {
+            const vaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
+
             if (scope === VaccinationScheduleFormScope.BATCH) {
-                await submitScheduleVaccinationByBatch();
-                const vaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
-                const eventData = await createEventInScheduleByBatch(vaccineType, formData.batch_number);
+                await createEventInScheduleByBatch(vaccineType, formData.batch_number);
             }
 
-            const animal = animals.find(a => a.id === formData.animal_id);
-
-
-            // Agendar segunda dose se solicitado
-            if (scheduleSecondDose) {
-                const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
-
-                if (selectedVaccineType) {
-                    let secondDoseDate = manualSecondDoseDate;
-
-                    // Se não foi definida data manual, calcular automaticamente
-                    if (!secondDoseDate && selectedVaccineType.interval_months) {
-                        const scheduledDate = new Date(formData.scheduled_date);
-                        const nextDate = new Date(scheduledDate);
-                        nextDate.setMonth(nextDate.getMonth() + selectedVaccineType.interval_months);
-                        secondDoseDate = nextDate.toISOString().split('T')[0];
-                    }
-
-                    if (secondDoseDate) {
-                        const secondDoseEventData: VaccinationEvent = {
-                            title: `Segunda Dose: ${selectedVaccineType.name}`,
-                            description: `Aplicar segunda dose da vacina ${selectedVaccineType.name} no animal ${animal.name || `Brinco ${animal.tag}`}`,
-                            date: new Date(secondDoseDate),
-                            type: 'vaccination',
-                            icon: '💉',
-                            completed: false
-                        };
-
-                        await createEvent(secondDoseEventData);
-                        toast.success('Segunda dose agendada automaticamente!');
-                    }
+            if (scope === VaccinationScheduleFormScope.ANIMAL) {
+                const animal = animals.find(a => a.id === formData.animal_id);
+                if (!animal) {
+                    toast.error("Desculpe, o animal não foi encontrado no rebanho!");
+                    return;
                 }
+                await createEventInScheduleByAnimal(vaccineType, animal);
+
             }
 
             resetFormData()
@@ -107,26 +91,42 @@ const ScheduleVaccination = () => {
         }
     };
 
-    const submitScheduleVaccinationByBatch = async () => {
-        const animals = await fetchAnimalsByBatch(formData.batch_number);
+    const createEventInScheduleByAnimal = async (vaccineType: VaccineType, animal: Animal) => {
+        const localDate = toLocalDateAtMidnight(formData.scheduled_date);
+        const eventData: VaccinationEvent = {
+            title: `Vacinar: ${vaccineType.name}`,
+            description: `Aplicar vacina ${vaccineType.name} no animal ${animal.tag} - ${animal.name ? animal.name : ''} 
+                          ${formData.notes ? `\n\nObservações: ${formData.notes}` : ''} 
+                          ${formData.manufacturer ? `\nFabricante: ${formData.manufacturer}` : ''}
+                          ${formData.responsible ? `\nResponsável: ${formData.responsible}` : ''}`,
+            date: localDate.toISOString(),
+            type: 'vaccination',
+            icon: '💉',
+            completed: false
+        };
 
+        await createEvent(eventData);
     }
 
     const createEventInScheduleByBatch = async (vaccineType: VaccineType, batch: string) => {
+        const localDate = toLocalDateAtMidnight(formData.scheduled_date);
         const eventData: VaccinationEvent = {
             title: `Vacinar: ${vaccineType.name}`,
             description: `Aplicar vacina ${vaccineType.name} no lote ${batch} 
                           ${formData.notes ? `\n\nObservações: ${formData.notes}` : ''} 
                           ${formData.manufacturer ? `\nFabricante: ${formData.manufacturer}` : ''}
                           ${formData.responsible ? `\nResponsável: ${formData.responsible}` : ''}`,
-            date: new Date(formData.scheduled_date).toISOString(),
+            date: localDate.toISOString(),
             type: 'vaccination',
             icon: '💉',
             completed: false
         };
 
-        const createdEvent = await createEvent(eventData);
-        console.log(createdEvent);
+        await createEvent(eventData);
+    }
+
+    function toLocalDateAtMidnight(dateString: string): Date {
+        return new Date(dateString + 'T00:00:00'); // 00h - TimeZone-SP
     }
 
     const resetFormData = () => {
@@ -139,17 +139,13 @@ const ScheduleVaccination = () => {
             responsible: '',
             notes: ''
         });
+        setScope(VaccinationScheduleFormScope.BATCH);
+        invalidateBatch();
     }
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({...prev, [field]: value}));
-    };
-
-    // Data mínima é hoje
-    const today = new Date().toISOString().split('T')[0];
-
-    const selectedVaccineType = vaccineTypes.find(vt => vt.id === formData.vaccine_type_id);
-    const hasInterval = selectedVaccineType?.interval_months;
+    }
 
     // Calcular data automática da segunda dose
     const getAutomaticSecondDoseDate = () => {
@@ -169,15 +165,42 @@ const ScheduleVaccination = () => {
         }
     }
 
+    const searchExistBatch = () => {
+        const value = formData.batch_number;
+        if (!value) {
+            toast.error('O Lote não pode estar vazio!');
+            return;
+        }
+
+        const animalsByBatch = animals.filter(a => a.batch === value);
+
+        if (animalsByBatch.length <= 0) {
+            toast.error('Desculpe, esse lote não existe ou não há animais cadastrados!');
+            return;
+        }
+
+        setValidBatch(true);
+        toast.success(`O Lote '${value}' foi encontrado com sucesso, prossiga com a inserção!`);
+    }
+
+    const invalidateBatch = () => {
+        if (validBatch) setValidBatch(false);
+    }
+
+    const handleOpenDialog = (open: boolean) => {
+        setIsOpen(open);
+        if (!open) resetFormData();
+    }
+
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenDialog}>
             <DialogTrigger asChild>
                 <Button className="flex items-center space-x-2">
                     <Calendar className="w-4 h-4"/>
                     <span>Agendar Vacina</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-scroll">
                 <DialogHeader>
                     <DialogTitle className="flex items-center space-x-2">
                         <Syringe className="w-5 h-5"/>
@@ -233,17 +256,32 @@ const ScheduleVaccination = () => {
                                 <Label htmlFor="batch_number" className="flex items-center space-x-1">
                                     <span>Lote *</span>
                                 </Label>
-                                <Input
-                                    id="batch_number"
-                                    value={formData.batch_number}
-                                    onChange={(e) => handleInputChange('batch_number', e.target.value)}
-                                    placeholder="Número do lote"
-                                    className="pr-10" // espaço à direita para o ícone
-                                />
-                                <Search
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black w-5 h-5 hover:cursor-pointer transition-colors duration-300 ease-in-out"
-                                    onClick={() => console.log('teste')}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="batch_number"
+                                        value={formData.batch_number}
+                                        onChange={(e) => {
+                                            handleInputChange('batch_number', e.target.value);
+                                            invalidateBatch();
+                                        }}
+                                        placeholder="Número do lote"
+                                        className="pr-10"
+                                    />
+
+                                    <div className="absolute inset-y-0 right-3 flex items-center">
+                                        {!validBatch && (
+                                            <Search
+                                                className="text-gray-400 hover:text-black w-5 h-5 hover:cursor-pointer transition-colors duration-300 ease-in-out"
+                                                onClick={() => searchExistBatch()}
+                                            />
+                                        )}
+                                        {validBatch && (
+                                            <Check
+                                                className="text-green-500 w-5 h-5"
+                                            />
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
 

@@ -59,9 +59,9 @@ const HerdForm = ({animal, onClose}: HerdFormProps) => {
 
         try {
             const animalData = {
-                tag: formData.tag,
+                tag: formData.tag.trim(),
                 name: formData.name || null,
-                phase: formData.phase,
+                phase: formData.phase.trim(),
                 birth_date: formData.birth_date,
                 reproductive_status: formData.reproductive_status,
                 observations: formData.observations || undefined,

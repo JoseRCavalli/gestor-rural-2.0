@@ -3,34 +3,12 @@ import {supabase} from '@/integrations/supabase/client';
 import {useAuth} from './useAuth';
 import {toast} from 'sonner';
 import {Animal} from '@/types/database';
+import {useQuery} from "@tanstack/react-query";
 
 export const useAnimals = () => {
     const [animals, setAnimals] = useState<Animal[]>([]);
     const [loading, setLoading] = useState(true);
     const {user} = useAuth();
-
-    const fetchAnimalsByBatch = async (batch: string) => {
-        if (!user) return;
-
-        try {
-            setLoading(true);
-
-            const {data, error} = await supabase
-                .from('animals')
-                .select('*')
-                .match({user_id: user.id, batch: batch});
-
-            if (error) {
-                console.error('Error fetching animals:', error);
-                toast.error('Erro ao carregar animais');
-                return;
-            }
-
-            return data;
-        } catch (e) {
-            console.error('Error fetching animals:', e);
-        }
-    }
 
     const fetchAnimals = async () => {
         if (!user) return;
@@ -57,6 +35,27 @@ export const useAnimals = () => {
             setLoading(false);
         }
     };
+
+    const fetchAnimalsByBatch = async (batch: string) => {
+        if (!user) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('animals')
+                .select('*')
+                .eq('batch', batch)
+                .eq('user_id', user.id);
+
+            if (error) {
+                return null;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error adding animal:', error);
+            toast.error('O Lote não foi encontrado ou não existem animais registrados nesse lote!');
+        }
+    }
 
     const addAnimal = async (animalData: Omit<Animal, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
         if (!user) return;
