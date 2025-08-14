@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -80,12 +81,11 @@ const MarkAsAppliedForm = ({ vaccination, eventId, isScheduled = false, size = '
             nextDoseDate = nextDate.toISOString().split('T')[0];
           }
 
-          // Criar evento para próxima dose
+          // Criar evento para próxima dose - removido campo 'time' que não existe
           await createEvent({
             title: `Vacinação: ${vaccineType.name}`,
             description: `Segunda dose de ${vaccineType.name} para ${animal.name || animal.tag}`,
             date: nextDoseDate,
-            time: '08:00',
             type: 'vaccination',
             icon: '💉'
           });

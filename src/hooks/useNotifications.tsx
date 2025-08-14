@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -169,21 +168,49 @@ export const useNotifications = () => {
     }
   };
 
-  // Garante que não haja notificações duplicadas no mesmo dia com mesmo título e tipo
   const createNotificationOnce = async (notification: {
     title: string;
     message: string;
     type?: 'info' | 'warning' | 'error' | 'success';
     channel?: 'app' | 'email' | 'whatsapp';
   }) => {
+    if (!user) return;
+
     const todayStr = new Date().toDateString();
-    const exists = notifications.some(n =>
+    
+    // Verificar se já existe uma notificação com o mesmo título, tipo e data
+    const exists = notificationsCache.some(n =>
       n.title === notification.title &&
       n.type === (notification.type || 'info') &&
       new Date(n.created_at).toDateString() === todayStr
     );
+    
     if (exists) return;
     return await createNotification(notification);
+  };
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        toast.error('Erro ao marcar todas como lidas');
+        return;
+      }
+
+      setNotifications(notificationsCache.map(notif => ({ ...notif, read: true })));
+      toast.success('Todas as notificações foram marcadas como lidas');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      toast.error('Erro ao marcar todas como lidas');
+    }
   };
 
   const markAsRead = async (notificationId: string) => {
@@ -322,6 +349,7 @@ export const useNotifications = () => {
     createNotification,
     createNotificationOnce,
     markAsRead,
+    markAllAsRead,
     deleteNotification,
     deleteAllNotifications,
     refetch: () => {

@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
@@ -8,7 +9,7 @@ export const useVaccinationNotifications = () => {
   const { vaccinations, vaccineTypes } = useVaccinations();
   const { animals } = useAnimals();
   const { events } = useEvents();
-  const { createNotificationOnce } = useNotifications();
+  const { createNotificationOnce, notifications } = useNotifications();
   const lastCheckRef = useRef<string>('');
 
   useEffect(() => {
@@ -60,34 +61,60 @@ export const useVaccinationNotifications = () => {
         return daysOverdue > 0;
       });
 
-      // Enviar notificações para vacinações aplicadas em atraso (1x por dia)
+      // Enviar notificações para vacinações aplicadas em atraso (apenas se não foi enviada hoje)
       for (const vaccination of overdueVaccinations) {
         const animal = animals.find(a => a.id === vaccination.animal_id);
         const vaccineType = vaccineTypes.find(vt => vt.id === vaccination.vaccine_type_id);
         
         if (animal && vaccineType) {
-          await createNotificationOnce({
-            title: 'Vacinação em Atraso',
-            message: `Próxima dose de ${vaccineType.name} para ${animal.name || `Brinco ${animal.tag}`} está atrasada`,
-            type: 'warning'
-          });
+          const notificationTitle = 'Vacinação em Atraso';
+          const notificationMessage = `Próxima dose de ${vaccineType.name} para ${animal.name || `Brinco ${animal.tag}`} está atrasada`;
+          
+          // Verificar se já existe uma notificação similar hoje (não excluída)
+          const todayStr = new Date().toDateString();
+          const existingNotification = notifications.find(n =>
+            n.title === notificationTitle &&
+            n.message === notificationMessage &&
+            new Date(n.created_at).toDateString() === todayStr
+          );
+          
+          if (!existingNotification) {
+            await createNotificationOnce({
+              title: notificationTitle,
+              message: notificationMessage,
+              type: 'warning'
+            });
+          }
         }
       }
 
-      // Enviar notificações para vacinações agendadas em atraso (1x por dia)
+      // Enviar notificações para vacinações agendadas em atraso (apenas se não foi enviada hoje)
       for (const event of overdueScheduled) {
-        await createNotificationOnce({
-          title: 'Vacinação Agendada em Atraso',
-          message: `${event.title} estava agendada para ${new Date(event.date).toLocaleDateString('pt-BR')}`,
-          type: 'warning'
-        });
+        const notificationTitle = 'Vacinação Agendada em Atraso';
+        const notificationMessage = `${event.title} estava agendada para ${new Date(event.date).toLocaleDateString('pt-BR')}`;
+        
+        // Verificar se já existe uma notificação similar hoje (não excluída)
+        const todayStr = new Date().toDateString();
+        const existingNotification = notifications.find(n =>
+          n.title === notificationTitle &&
+          n.message === notificationMessage &&
+          new Date(n.created_at).toDateString() === todayStr
+        );
+        
+        if (!existingNotification) {
+          await createNotificationOnce({
+            title: notificationTitle,
+            message: notificationMessage,
+            type: 'warning'
+          });
+        }
       }
     };
 
     // Verificar apenas uma vez ao montar o componente e quando os dados mudarem
     checkOverdueVaccinations();
 
-  }, [vaccinations, animals, events, vaccineTypes, createNotificationOnce]);
+  }, [vaccinations, animals, events, vaccineTypes, createNotificationOnce, notifications]);
 };
 
 export default function VaccinationNotifications() {

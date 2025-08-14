@@ -1,13 +1,13 @@
-
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Check, Trash2, Filter } from 'lucide-react';
+import { Bell, X, Check, Trash2, Filter, CheckCircle2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
 
 const NotificationCenter = () => {
-  const { notifications, markAsRead, deleteNotification, deleteAllNotifications, unreadCount, loading } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications, unreadCount, loading } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'info' | 'warning' | 'error' | 'success'>('all');
 
@@ -87,8 +87,19 @@ const NotificationCenter = () => {
             <option value="success">Sucesso</option>
           </select>
 
+          {unreadCount > 0 && (
+            <Button
+              onClick={markAllAsRead}
+              className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center space-x-1"
+              title="Marcar todas como lidas"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Marcar Todas</span>
+            </Button>
+          )}
+
           {notifications.length > 0 && (
-            <button
+            <Button
               onClick={() => {
                 if (window.confirm('Tem certeza que deseja excluir todas as notificações?')) {
                   deleteAllNotifications();
@@ -99,7 +110,7 @@ const NotificationCenter = () => {
             >
               <Trash2 className="w-4 h-4" />
               <span>Limpar Tudo</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
