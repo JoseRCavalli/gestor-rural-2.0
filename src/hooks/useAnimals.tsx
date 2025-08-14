@@ -95,7 +95,7 @@ export const useAnimals = () => {
     try {
       const { data, error } = await supabase
         .from('animals')
-        .insert([{ ...animalData, user_id: user.id }])
+        .insert([{ ...animalData, user_id: user.id, reproductive_status: 'empty' }])
         .select()
         .single();
 
