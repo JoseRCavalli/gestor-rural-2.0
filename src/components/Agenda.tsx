@@ -15,6 +15,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useVaccinations } from '@/hooks/useVaccinations';
 import { useAnimals } from '@/hooks/useAnimals';
 import { toast } from 'sonner';
+import ScheduledVaccinations from './ScheduledVaccinations';
 
 const Agenda = () => {
   const { events, createEvent, updateEvent, deleteEvent, loading } = useEvents();
@@ -521,12 +522,34 @@ const Agenda = () => {
         </Card>
       </motion.div>
 
+      {/* Scheduled Vaccinations */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Syringe className="w-5 h-5 text-blue-600" />
+              <span>Vacinações Agendadas</span>
+            </CardTitle>
+            <CardDescription>
+              Gerencie vacinações programadas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScheduledVaccinations variant="full" />
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Past Events */}
       {pastEvents.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
         >
           <Card>
             <CardHeader>

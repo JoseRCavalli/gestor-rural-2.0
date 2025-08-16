@@ -12,7 +12,8 @@ import {
   Droplets,
   Clock,
   Shield,
-  Bell
+  Bell,
+  Syringe
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ import { useStock } from '@/hooks/useStock';
 import { useAuth } from '@/hooks/useAuth';
 import StockAlerts from './StockAlerts';
 import { useNotifications } from '@/hooks/useNotifications';
+import ScheduledVaccinations from './ScheduledVaccinations';
 
 const Dashboard = () => {
   const { animals } = useAnimals();
@@ -493,12 +495,32 @@ const Dashboard = () => {
       </motion.div>
 
       {/* LINHA 4 - Informações Adicionais */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Vacinas Aplicadas Recentemente */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Vacinações Agendadas */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
+        >
+          <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-gray-800">
+                <Syringe className="w-5 h-5 text-blue-600" />
+                <span className="text-sm">Vacinações Agendadas</span>
+              </CardTitle>
+              <CardDescription>Próximas vacinações</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScheduledVaccinations />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Vacinas Aplicadas Recentemente */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
         >
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -525,7 +547,7 @@ const Dashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
         >
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
