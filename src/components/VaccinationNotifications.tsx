@@ -14,6 +14,7 @@ export const useVaccinationNotifications = () => {
 
   useEffect(() => {
     const checkOverdueVaccinations = async () => {
+
       const today = new Date().toISOString().split('T')[0];
       
       // Criar uma chave única baseada na data e nos IDs únicos das vacinações e eventos em atraso

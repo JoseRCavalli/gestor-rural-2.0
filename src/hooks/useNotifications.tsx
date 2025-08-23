@@ -285,6 +285,8 @@ export const useNotifications = () => {
     }
     setLoading(false);
 
+    console.log("[useNotifications] useEffect rodou para user:", user?.id);
+
     // Subscribe to realtime changes for notifications and settings (per user)
     if (!user) return;
     const channel = supabase

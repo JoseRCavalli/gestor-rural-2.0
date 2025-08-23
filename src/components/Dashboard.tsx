@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useRef} from 'react';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
@@ -27,6 +27,30 @@ import { useAuth } from '@/hooks/useAuth';
 import StockAlerts from './StockAlerts';
 import { useNotifications } from '@/hooks/useNotifications';
 import ScheduledVaccinations from './ScheduledVaccinations';
+import {toLocateDate} from "@/lib/formatters/date/to-locate-date.ts";
+import {maskDate} from "@/lib/formatters/date/mask-date.ts";
+import {date} from "zod";
+
+const getGreeting = (name?: string) => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const greetings = [
+        { start: 4 * 60, end: 12 * 60 + 30, greeting: "🌅 Bom dia", message: "Vamos começar o dia produtivo." },
+        { start: 13 * 60, end: 18 * 60 + 30, greeting: "☀️ Boa tarde", message: "Vamos seguir com foco." },
+        { start: 0, end: 23 * 60 + 59, greeting: "🌙 Boa noite", message: "Tenha um bom descanso." }
+    ];
+
+    const { greeting, message } = greetings.find(({ start, end }) =>
+        currentMinutes >= start && currentMinutes <= end
+    );
+
+    return {
+        greeting,
+        message,
+        fullMessage: `${greeting}, ${name ?? 'Usuário'}! ${message}`
+    };
+};
 
 const Dashboard = () => {
   const { animals } = useAnimals();
@@ -37,37 +61,8 @@ const Dashboard = () => {
   const { stockItems } = useStock();
   const { profile } = useAuth();
 
+  const notifiedItems = useRef<Set<string>>(new Set());
   const today = new Date().toISOString().split('T')[0];
-  const currentHour = new Date().getHours();
-  const currentMinutes = new Date().getMinutes();
-
-  // Saudação baseada no horário
-  const getGreeting = () => {
-    if (currentHour >= 4 && (currentHour < 12 || (currentHour === 12 && currentMinutes <= 30))) {
-      return "🌅 Bom dia";
-    }
-    if (currentHour >= 13 && (currentHour < 18 || (currentHour === 18 && currentMinutes <= 30))) {
-      return "☀️ Boa tarde";
-    }
-    return "🌙 Boa noite";
-  };
-
-  // Mensagem personalizada baseada no horário
-  const getGreetingMessage = () => {
-    if (currentHour >= 4 && (currentHour < 12 || (currentHour === 12 && currentMinutes <= 30))) {
-      return "Vamos começar o dia produtivo.";
-    }
-    if (currentHour >= 13 && (currentHour < 18 || (currentHour === 18 && currentMinutes <= 30))) {
-      return "Vamos seguir com foco.";
-    }
-    return "Tenha um bom descanso.";
-  };
-
-  // Pegar primeiro nome do usuário
-  const getFirstName = () => {
-    if (!profile?.name) return 'Usuário';
-    return profile.name.split(' ')[0];
-  };
 
   // Estatísticas dos animais (normalizando fases)
   const phaseOf = (a: any) => (a.phase || '').toUpperCase().replace(/\s+/g, '_');
@@ -81,10 +76,10 @@ const Dashboard = () => {
 
   // Eventos próximos (próximos 7 dias) - Integração completa com agenda
   const upcomingEvents = events.filter(event => {
-    const eventDate = new Date(event.date + 'T00:00:00');
-    const todayDate = new Date(today + 'T00:00:00');
-    const diffTime = eventDate.getTime() - todayDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const eventDate = toLocateDate(event.date);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((eventDate.getTime() - todayDate.getTime()) / (24 * 60 * 60 * 1000));
     return diffDays >= 0 && diffDays <= 7 && !event.completed;
   });
 
@@ -151,6 +146,7 @@ const Dashboard = () => {
   const isFoggyWeather = desc.includes('neblina') || desc.includes('nevoeiro') || weather?.icon === '🌫️';
   const isHeatAlert = (weather?.temperature || 0) >= 35 || desc.includes('onda de calor') || desc.includes('calor') || desc.includes('quente');
   const isColdAlert = (weather?.temperature || 99) <= 3 || desc.includes('frio');
+  const { createNotificationOnce } = useNotifications();
 
   // Todos os alertas do sistema
   const weatherAlerts = [
@@ -236,9 +232,6 @@ const Dashboard = () => {
     ...weatherAlerts
   ];
 
-  // Envie notificações para clima e estoque (sem duplicar)
-  const { createNotificationOnce } = useNotifications();
-
   useEffect(() => {
     if (!weather) return;
     weatherAlerts.forEach(alert => {
@@ -248,17 +241,21 @@ const Dashboard = () => {
         type: alert.level === 'critical' ? 'error' : 'warning',
       });
     });
+
   }, [weather?.description, weather?.temperature, createNotificationOnce]);
 
   useEffect(() => {
     lowStockItems.forEach(item => {
-      createNotificationOnce({
-        title: `Estoque baixo - ${item.name}`,
-        message: `${item.quantity} ${item.unit} restante(s)`,
-        type: item.quantity === 0 ? 'error' : 'warning',
-      });
+      if (!notifiedItems.current.has(item.id)) {
+        createNotificationOnce({
+          title: `Estoque baixo - ${item.name}`,
+          message: `${item.quantity} ${item.unit} restante(s)`,
+          type: item.quantity === 0 ? 'error' : 'warning',
+        });
+        notifiedItems.current.add(item.id);
+      }
     });
-  }, [stockItems, createNotificationOnce]);
+  }, [lowStockItems, createNotificationOnce]);
 
   return (
     <div className="space-y-6 p-6 bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
@@ -266,7 +263,7 @@ const Dashboard = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">🏡 Dashboard Rural</h1>
         <p className="text-gray-600 text-lg">
-          {getGreeting()}, {getFirstName()}! {getGreetingMessage()}
+          { getGreeting(profile?.name).fullMessage }
         </p>
       </div>
 
@@ -571,7 +568,7 @@ const Dashboard = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{event.title}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                          {maskDate(new Date(event.date))}
                         </p>
                       </div>
                     </div>

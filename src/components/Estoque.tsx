@@ -5,13 +5,11 @@ import { Package, Plus, Edit2, Trash2, AlertTriangle, Search, DollarSign } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useStock } from '@/hooks/useStock';
 import StockImporter from '@/components/StockImporter';
 import StockAlerts from '@/components/StockAlerts';
 import StockControl from '@/components/StockControl';
-import {replace, useNavigate} from "react-router-dom";
 
 const Estoque = () => {
   const { 
@@ -27,7 +25,6 @@ const Estoque = () => {
     refetch,
   } = useStock();
 
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todas');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
