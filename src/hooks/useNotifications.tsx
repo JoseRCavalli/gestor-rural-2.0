@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { NotificationSettings, Notification } from '@/types/database';
+import { NotificationSettings } from '@/types/database';
+import { WarnLevel } from "@/lib/types/wheater-warn.ts";
+import { Notification } from "@/lib/types/database/notification.ts";
 
 // Global caches and pub-sub to keep notifications/settings in sync across hook instances
 let notificationsCache: Notification[] = [];
@@ -43,9 +45,9 @@ export const useNotifications = () => {
         return;
       }
 
-      const typedNotifications = data || [];
+        const typedNotifications: Notification[] = (data as Notification[]) || [];
 
-      setNotifications(typedNotifications);
+        setNotifications(typedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -138,8 +140,21 @@ export const useNotifications = () => {
     message: string;
     type?: 'info' | 'warning' | 'error' | 'success';
     channel?: 'app' | 'email' | 'whatsapp';
+    notificationKey: string;
   }) => {
     if (!user) return;
+
+    const { data: foundedNotification, error: errorNotificationFounded } = await supabase
+        .from('notifications')
+        .select("*")
+        .eq("notification_key", notification.notificationKey)
+        .single();
+
+    const isExists = foundedNotification;
+
+    if (isExists) {
+        return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -149,17 +164,18 @@ export const useNotifications = () => {
           title: notification.title,
           message: notification.message,
           type: notification.type || 'info',
-          channel: notification.channel || 'app'
+          channel: notification.channel || 'app',
+          notification_key: notification.notificationKey,
         })
         .select()
         .single();
 
-      if (error) {
+      if (error || errorNotificationFounded) {
         console.error('Error creating notification:', error);
         return;
       }
 
-      const typedNotification = data;
+      const typedNotification = data as Notification;
 
       setNotifications([typedNotification, ...notificationsCache]);
       return typedNotification;
@@ -176,17 +192,26 @@ export const useNotifications = () => {
   }) => {
     if (!user) return;
 
-    const todayStr = new Date().toDateString();
-    
-    // Verificar se já existe uma notificação com o mesmo título, tipo e data
-    const exists = notificationsCache.some(n =>
-      n.title === notification.title &&
-      n.type === (notification.type || 'info') &&
-      new Date(n.created_at).toDateString() === todayStr
+    const todayStr = new Date().toISOString().split('T')[0];
+    const notificationKey = createNotificationKey(notification.title, user.id, todayStr);
+
+    if (!notificationKey) {
+        toast.error("Não foi possível criar a notificação.");
+        return;
+    }
+
+    // Verify exists notification with notification_key
+    const exists = notificationsCache.find(
+        (notification) => notification.notification_key === notificationKey
     );
-    
+
     if (exists) return;
-    return await createNotification(notification);
+
+    const notificationNormalize = {
+        ...notification,
+        notificationKey,
+    }
+    return await createNotification(notificationNormalize);
   };
 
   const markAllAsRead = async () => {
@@ -285,8 +310,6 @@ export const useNotifications = () => {
     }
     setLoading(false);
 
-    console.log("[useNotifications] useEffect rodou para user:", user?.id);
-
     // Subscribe to realtime changes for notifications and settings (per user)
     if (!user) return;
     const channel = supabase
@@ -338,6 +361,11 @@ export const useNotifications = () => {
       subscribers.delete(listener);
     };
   }, []);
+
+  const createNotificationKey = (title: string, userId: string, date: string) => {
+      if (date.includes(":")) return;
+      return `${title.toLowerCase()}_${userId}_${date}`.replace(/\s+/g, "_").trim();
+  }
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

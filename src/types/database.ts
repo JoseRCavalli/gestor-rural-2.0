@@ -79,19 +79,6 @@ export interface NotificationSettings {
   updated_at: string;
 }
 
-export interface Notification {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  type: string;
-  channel: string;
-  read?: boolean;
-  sent_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Report {
   id: string;
   user_id: string;

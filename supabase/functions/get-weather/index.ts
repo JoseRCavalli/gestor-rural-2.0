@@ -31,16 +31,16 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    
-    const weatherData = {
-      temperature: Math.round(data.main.temp),
-      humidity: data.main.humidity,
-      description: data.weather[0].description,
-      icon: getWeatherIcon(data.weather[0].icon),
-      location: data.name
-    };
 
-    console.log('Weather data fetched successfully:', weatherData);
+    const weatherData = {
+        id: data.weather.id,
+        main: data.wheather.main,
+        temperature: Math.round(data.main.temp),
+        humidity: data.main.humidity,
+        description: data.weather[0].description,
+        icon: getWeatherIcon(data.weather[0].icon),
+        location: data.name
+    };
 
     return new Response(
       JSON.stringify(weatherData),
@@ -52,10 +52,8 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error fetching weather:', error);
-    
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
         fallback: {
           temperature: 25,

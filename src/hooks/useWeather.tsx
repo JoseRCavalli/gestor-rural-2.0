@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { WeatherData, getWeatherData } from '@/services/weather-service.ts';
+import { WeatherType } from "@/lib/types/wheater-type.ts";
+import { getWeatherData } from "@/services/weather-service.ts";
 
 export const useWeather = () => {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weather, setWeather] = useState<WeatherType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +22,7 @@ export const useWeather = () => {
       console.error('Weather fetch error:', err);
       
       // Set fallback weather data even on error
-      setWeather({
-        temperature: 25,
-        humidity: 65,
-        description: 'Clima indisponível',
-        icon: '☀️',
-        location: 'Localização não disponível'
-      });
+      setWeather(weather);
     } finally {
       setLoading(false);
     }
